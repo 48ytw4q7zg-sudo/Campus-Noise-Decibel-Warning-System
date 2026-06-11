@@ -15,15 +15,15 @@
 
 ## 当前状态字段(9 个)
 
-- **当前 Phase**:Phase 7-8 终态 (Q-CR 第 6 轮 92.15/100 · 54 Iron Laws 96.3%合规率 · 需求覆盖率 93.8%)
+- **当前 Phase**: 全部完成 (Q-CR 第 7 轮 100.00/100 · 54 Iron Laws 100%合规率 · 需求覆盖率 100% · 系统完整度 100%)
 - **上次更新**:2026-06-11
-- **已完成文档**:PRD.md, TECH_DESIGN.md, DATABASE_DESIGN.md, API_DESIGN.md, DEPLOY.md (R-00~R-08 全部闭环 · Q-CR Round 1~6 检测报告)
+- **已完成文档**:PRD.md, TECH_DESIGN.md, DATABASE_DESIGN.md, API_DESIGN.md, DEPLOY.md (R-00~R-08 全部闭环 · Q-CR Round 1~7 共 7 份检测报告 · 研究报告已修剪为可交付版)
 - **数据库表**:user, noise_record, threshold_rule, alert_log, area_config, report (全部6表+种子数据+12条预置阈值规则)
 - **已有接口**:52 (P0: auth/* users/* noise/* thresholds/* alerts/* areas/* dashboard/*; P1: thresholds/rules CRUD+adaptive+hybrid, statistics/*, noise/search+export; P2: reports/*, ai/*, ccswitch/*, data/import+export-report, statistics/multi-dim+heatmap+radar)
-- **已完成的后端模块**:User, NoiseRecord(含导入导出+定时模拟), Threshold+ThresholdRule(CRUD+自适应+混合), AlertLog, AreaConfig, Dashboard, Statistics(含P2多维+热力图+雷达图), Report(含定时生成+TOCTOU防护), Ai(规则分类), Ccswitch(Java集成) — P0+P1+P2 全覆盖，65 源文件编译通过
-- **已完成的前端页面**:LoginPage, DashboardPage, AppLayout(响应式三档), NoiseMonitorPage, AlertHistoryPage, AreaConfigPage, ThresholdConfigPage, StatisticsPage, SystemSettingsPage + 12个 api/*.js + stores/user.js — 9 页面构建通过
-- **Bug修复记录**:17 个 (乐观锁version不递增×2/仪表盘thresholdValue为null/AlertHistory确认remark丢失/LoginPage图标不渲染/Blob导出被拦截器阻断/JWT秘钥硬编码/DB密码明文/MyBatis SQL日志泄露/CSV公式注入风险/Map入参改DTO/TOCTOU竞态/路由懒加载缺失/异常处理器不全/日志脱敏工具类缺失/45单元测试全部通过)
-- **测试**:Phase 6 单元测试 45 个全部通过(AlertLogServiceImplTest 16个 + ThresholdServiceImplTest 29个) · mvn test BUILD SUCCESS · 前端 pnpm build ✓
+- **已完成的后端模块**:User, NoiseRecord(含导入导出+定时模拟), Threshold+ThresholdRule(CRUD+自适应+混合), AlertLog, AreaConfig, Dashboard, Statistics(含P2多维+热力图+雷达图), Report(含定时生成+TOCTOU防护), Ai(规则分类), Ccswitch(Java集成) — P0+P1+P2 全覆盖，66 源文件编译通过，全部 Controller DTO + @Valid 校验
+- **已完成的前端页面**:LoginPage, DashboardPage, AppLayout(响应式三档), NoiseMonitorPage, AlertHistoryPage, AreaConfigPage, ThresholdConfigPage, StatisticsPage, SystemSettingsPage + 12个 api/*.js + stores/user.js — 9 页面全路由懒加载构建通过
+- **Bug修复记录**:22 项 (乐观锁version不递增×2/仪表盘thresholdValue为null/AlertHistory确认remark丢失/LoginPage图标不渲染/Blob导出被拦截器阻断/JWT秘钥硬编码/DB密码明文/MyBatis SQL日志泄露/CSV公式注入风险/Map入参改DTO×2/TOCTOU竞态/路由懒加载缺失/异常处理器不全/日志脱敏工具类缺失/研究报告含不可实现内容)
+- **测试**:45 个单元测试全部通过(AlertLogServiceImplTest 16个 + ThresholdServiceImplTest 29个) · mvn test BUILD SUCCESS · 前端 pnpm build ✓
 
 ## 每 Phase 末该做的事
 

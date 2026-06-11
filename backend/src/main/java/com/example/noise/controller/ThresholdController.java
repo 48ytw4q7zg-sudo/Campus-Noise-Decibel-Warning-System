@@ -2,8 +2,10 @@ package com.example.noise.controller;
 
 import com.example.noise.common.BusinessException;
 import com.example.noise.common.Result;
+import com.example.noise.entity.dto.UpdateAdaptiveConfigRequest;
 import com.example.noise.service.ThresholdService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,8 +14,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 public class ThresholdController {
@@ -59,11 +63,18 @@ public class ThresholdController {
 
   /** 批量配置各功能区的自适应参数（仅管理员） */
   @PutMapping("/api/thresholds/adaptive/config")
-  public Result<?> updateAdaptiveConfig(@RequestBody Map<String, Object> body,
+  public Result<?> updateAdaptiveConfig(@Valid @RequestBody UpdateAdaptiveConfigRequest body,
                                         HttpServletRequest request) {
     checkAdmin(request);
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> areaConfigs = (List<Map<String, Object>>) body.get("areaConfigs");
+    List<Map<String, Object>> areaConfigs = body.getAreaConfigs().stream()
+        .map(c -> {
+          Map<String, Object> m = new HashMap<>();
+          m.put("location", c.getLocation());
+          m.put("windowSize", c.getWindowSize());
+          m.put("kValue", c.getKValue());
+          return m;
+        })
+        .collect(Collectors.toList());
     thresholdService.updateAdaptiveConfig(areaConfigs);
     return Result.success(null, "自适应参数配置成功");
   }
