@@ -49,12 +49,65 @@
       </el-menu>
     </el-aside>
 
+    <!-- 移动端抽屉 -->
+    <el-drawer
+      v-model="drawerVisible"
+      direction="ltr"
+      size="200px"
+      :with-header="false"
+      :close-on-press-escape="true"
+    >
+      <div class="drawer-aside-header" @click="drawerVisible = false">
+        <span class="aside-title">校园噪音预警</span>
+      </div>
+      <el-menu
+        :default-active="activeMenu"
+        router
+        background-color="#304156"
+        text-color="#bfcbd9"
+        active-text-color="#409EFF"
+        @select="onMenuClick"
+      >
+        <el-menu-item index="/">
+          <el-icon><Odometer /></el-icon>
+          <span>仪表盘</span>
+        </el-menu-item>
+        <el-menu-item index="/noise-monitor">
+          <el-icon><Monitor /></el-icon>
+          <span>噪声监测</span>
+        </el-menu-item>
+        <el-menu-item index="/alert-history">
+          <el-icon><Bell /></el-icon>
+          <span>告警记录</span>
+        </el-menu-item>
+        <el-menu-item v-if="userStore.isAdmin" index="/area-config">
+          <el-icon><Location /></el-icon>
+          <span>功能区配置</span>
+        </el-menu-item>
+        <el-menu-item v-if="userStore.isAdmin" index="/threshold-config">
+          <el-icon><Setting /></el-icon>
+          <span>阈值配置</span>
+        </el-menu-item>
+        <el-menu-item index="/statistics">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>统计分析</span>
+        </el-menu-item>
+        <el-menu-item v-if="userStore.isAdmin" index="/settings">
+          <el-icon><Tools /></el-icon>
+          <span>系统设置</span>
+        </el-menu-item>
+      </el-menu>
+    </el-drawer>
+
     <!-- 右侧主体 -->
     <el-container>
       <!-- 顶部栏 -->
       <el-header class="app-header">
         <div class="header-left">
-          <el-icon class="collapse-btn" @click="isCollapse = !isCollapse" :size="22">
+          <el-icon v-if="isMobile" class="collapse-btn" @click="drawerVisible = true" :size="22">
+            <Expand />
+          </el-icon>
+          <el-icon v-else class="collapse-btn" @click="isCollapse = !isCollapse" :size="22">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
@@ -78,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import {
@@ -89,6 +142,23 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const route = useRoute()
 const isCollapse = ref(false)
+const isMobile = ref(false)
+const drawerVisible = ref(false)
+
+// 响应式检测
+function checkScreen() {
+  isMobile.value = window.innerWidth < 768
+  if (window.innerWidth < 992) {
+    isCollapse.value = true
+  }
+}
+onMounted(() => {
+  checkScreen()
+  window.addEventListener('resize', checkScreen)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreen)
+})
 
 // 当前激活菜单项
 const activeMenu = computed(() => route.path)
@@ -103,6 +173,12 @@ function handleLogout() {
     userStore.logout()
   }).catch(() => {})
 }
+
+function onMenuClick() {
+  if (isMobile.value) {
+    drawerVisible.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -114,6 +190,16 @@ function handleLogout() {
   background-color: #304156;
   overflow: hidden;
   transition: width 0.3s;
+}
+
+.drawer-aside-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #304156;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .aside-header {
@@ -163,5 +249,16 @@ function handleLogout() {
 .app-main {
   background-color: #f5f7fa;
   min-height: calc(100vh - 56px);
+}
+
+/* 响应式：<768px 隐藏侧栏，用抽屉 */
+@media (max-width: 767px) {
+  .app-aside { display: none; }
+  .app-main { padding: 8px; }
+}
+
+/* 响应式：768-991px 折叠侧栏 */
+@media (min-width: 768px) and (max-width: 991px) {
+  .app-aside { width: 64px !important; }
 }
 </style>

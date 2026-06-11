@@ -2,14 +2,18 @@
 """
 校园噪音分贝预警员系统 — ccswitch 配置服务 v2026.6.11
 基于 Flask 的配置管理服务，提供健康检查、配置重载、阈值规则管理。
+新增：settings.json 文件监控 + SSE 实时推送配置变更。
 作者：QXW
 """
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import json
 import os
 import time
 import logging
+import threading
+from pathlib import Path
+from queue import Queue
 
 # 配置日志
 logging.basicConfig(
@@ -37,6 +41,11 @@ start_time = time.time()
 # 阈值规则内存缓存
 _threshold_rules = None
 _threshold_rules_loaded_at = 0
+
+# SSE 订阅者管理
+_sse_subscribers = []  # list of Queue
+_sse_lock = threading.Lock()
+_settings_mtime = 0  # settings.json 最后修改时间
 
 
 def _load_threshold_rules():
@@ -69,6 +78,64 @@ def _load_threshold_rules():
 _load_threshold_rules()
 
 
+def _find_settings_path():
+    """查找 settings.json 路径"""
+    for name in ("settings.json", "settings.local.json"):
+        p = Path.home() / ".claude" / name
+        if p.is_file():
+            return p
+    return None
+
+
+def _settings_watcher_loop():
+    """后台线程：每 5 秒检查 settings.json 修改时间，变更时自动重载并推送 SSE"""
+    global _settings_mtime
+    while True:
+        try:
+            time.sleep(5)
+            settings_path = _find_settings_path()
+            if not settings_path:
+                continue
+            current_mtime = settings_path.stat().st_mtime
+            if _settings_mtime == 0:
+                _settings_mtime = current_mtime
+                continue
+            if current_mtime != _settings_mtime:
+                _settings_mtime = current_mtime
+                logger.info("检测到 settings.json 变更，自动重载配置...")
+                success = reload_config()
+                event_data = json.dumps({
+                    'event': 'config_changed',
+                    'timestamp': time.time(),
+                    'config_source': Config.CONFIG_SOURCE,
+                    'model': Config.ANTHROPIC_MODEL,
+                    'base_url': Config.ANTHROPIC_BASE_URL,
+                    'is_proxy': Config.CCSWITCH_IS_PROXY,
+                })
+                _broadcast_sse(event_data)
+                logger.info("SSE 推送已发送: config_changed")
+        except Exception as e:
+            logger.error(f"settings.json 监控异常: {e}")
+
+
+def _broadcast_sse(data: str):
+    """向所有 SSE 订阅者广播事件"""
+    with _sse_lock:
+        dead = []
+        for q in _sse_subscribers:
+            try:
+                q.put_nowait(data)
+            except Exception:
+                dead.append(q)
+        for q in dead:
+            _sse_subscribers.remove(q)
+
+
+# 启动后台文件监控线程
+_watcher_thread = threading.Thread(target=_settings_watcher_loop, daemon=True)
+_watcher_thread.start()
+
+
 def _get_uptime_seconds() -> float:
     """获取服务运行秒数"""
     return time.time() - start_time
@@ -91,6 +158,7 @@ def health_check():
         'base_url': Config.ANTHROPIC_BASE_URL,
         'uptime_seconds': round(uptime_seconds, 2),
         'threshold_rules_loaded': _threshold_rules is not None,
+        'watcher_active': True,
     }
     if _threshold_rules:
         result['threshold_rules'] = {
@@ -118,6 +186,16 @@ def config_reload():
     success = reload_config()
     if success:
         logger.info(f"配置已从 ccswitch 重新加载: model={Config.ANTHROPIC_MODEL}, base_url={Config.ANTHROPIC_BASE_URL}")
+        # 推送 SSE 事件
+        event_data = json.dumps({
+            'event': 'config_reloaded',
+            'timestamp': time.time(),
+            'config_source': Config.CONFIG_SOURCE,
+            'model': Config.ANTHROPIC_MODEL,
+            'base_url': Config.ANTHROPIC_BASE_URL,
+            'is_proxy': Config.CCSWITCH_IS_PROXY,
+        })
+        _broadcast_sse(event_data)
         return jsonify({
             'success': True,
             'message': '配置已从 ccswitch 重新加载',
@@ -174,6 +252,44 @@ def reload_threshold_rules():
     })
 
 
+@app.route('/api/sse', methods=['GET'])
+def sse_stream():
+    """SSE (Server-Sent Events) 端点
+
+    实时推送配置变更事件，前端 EventSource 连接。
+    事件类型：config_changed（自动检测到 settings.json 变更）
+             config_reloaded（手动 POST /api/config/reload 触发）
+    """
+    q = Queue(maxsize=50)
+    with _sse_lock:
+        _sse_subscribers.append(q)
+
+    def generate():
+        # 发送初始连接事件
+        yield 'data: {"event":"connected","timestamp":%d}\n\n' % time.time()
+        try:
+            while True:
+                try:
+                    data = q.get(timeout=30)  # 30s heartbeat
+                    yield 'data: %s\n\n' % data
+                except Exception:
+                    # 超时，发心跳
+                    yield ': heartbeat\n\n'
+        except GeneratorExit:
+            pass
+        finally:
+            with _sse_lock:
+                if q in _sse_subscribers:
+                    _sse_subscribers.remove(q)
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={
+                        'Cache-Control': 'no-cache',
+                        'X-Accel-Buffering': 'no',
+                        'Connection': 'keep-alive',
+                    })
+
+
 @app.route('/', methods=['GET'])
 def index():
     """根路径 — 返回服务简要状态"""
@@ -185,11 +301,13 @@ def index():
         'config_source': Config.CONFIG_SOURCE,
         'model': Config.ANTHROPIC_MODEL,
         'uptime_seconds': round(uptime_seconds, 2),
+        'watcher_active': True,
         'endpoints': {
             '/api/health': '健康检查',
             '/api/config/reload': '配置重载 (POST)',
             '/api/threshold-rules': '获取阈值规则',
             '/api/threshold-rules/reload': '重新加载阈值规则 (POST)',
+            '/api/sse': 'SSE 实时推送 (GET)',
         },
     })
 

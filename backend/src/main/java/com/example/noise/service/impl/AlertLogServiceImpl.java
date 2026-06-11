@@ -93,6 +93,7 @@ public class AlertLogServiceImpl implements AlertLogService {
     }
 
     alert.setConfirmStatus("已确认");
+    alert.setVersion(alert.getVersion() + 1);
     alertLogMapper.updateById(alert);
   }
 
@@ -113,6 +114,7 @@ public class AlertLogServiceImpl implements AlertLogService {
 
     alert.setConfirmStatus("已处置");
     alert.setRemark(remark);
+    alert.setVersion(alert.getVersion() + 1);
     alertLogMapper.updateById(alert);
   }
 }

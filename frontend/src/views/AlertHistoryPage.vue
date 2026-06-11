@@ -246,15 +246,14 @@ const handleDetail = async (row) => {
 // 确认告警
 const handleConfirm = async (row) => {
   try {
-    await ElMessageBox.prompt('请输入确认信息（可选）', '确认告警', {
+    const { value } = await ElMessageBox.prompt('请输入确认信息（可选）', '确认告警', {
       confirmButtonText: '确认',
       cancelButtonText: '取消',
       inputPlaceholder: '确认备注（可选）',
       inputType: 'textarea',
       inputMaxlength: 500
     });
-    const confirmResult = await confirmAlert(row.id, { version: row.version, remark: '' });
-    // ElMessageBox.prompt 在取消时会 reject，confirmed 只在点确认后执行
+    const confirmResult = await confirmAlert(row.id, { version: row.version, remark: value || '' });
     ElMessage.success(confirmResult.message || '告警已确认');
     fetchData();
   } catch (e) {

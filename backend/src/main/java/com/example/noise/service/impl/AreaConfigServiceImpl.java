@@ -53,6 +53,7 @@ public class AreaConfigServiceImpl implements AreaConfigService {
     if (status != null) {
       area.setStatus(status);
     }
+    area.setVersion(area.getVersion() + 1);
 
     areaConfigMapper.updateById(area);
   }

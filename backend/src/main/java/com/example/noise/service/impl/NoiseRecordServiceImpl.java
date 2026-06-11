@@ -10,6 +10,7 @@ import com.example.noise.entity.dto.NoiseRecordRequest;
 import com.example.noise.entity.dto.NoiseLatestVO;
 import com.example.noise.mapper.NoiseRecordMapper;
 import com.example.noise.service.NoiseRecordService;
+import com.example.noise.service.ThresholdService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -61,9 +62,12 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
   );
 
   private final NoiseRecordMapper noiseRecordMapper;
+  private final ThresholdService thresholdService;
 
-  public NoiseRecordServiceImpl(NoiseRecordMapper noiseRecordMapper) {
+  public NoiseRecordServiceImpl(NoiseRecordMapper noiseRecordMapper,
+                                ThresholdService thresholdService) {
     this.noiseRecordMapper = noiseRecordMapper;
+    this.thresholdService = thresholdService;
   }
 
   @Override
@@ -148,8 +152,12 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
         vo.setLocation(record.getLocation());
         vo.setDecibel(record.getDecibel());
         vo.setTimePoint(record.getTimePoint());
-        // P0 阶段：thresholdValue 返回 null，P0-3 补全
-        vo.setThresholdValue(null);
+        // 查询当前功能区对应时段的阈值
+        try {
+          vo.setThresholdValue(thresholdService.getCurrentThreshold(area).getThresholdValue());
+        } catch (Exception e) {
+          vo.setThresholdValue(55); // 兜底全局默认值
+        }
         vo.setIsAbnormal(record.getIsAbnormal());
         result.add(vo);
       } else {
@@ -334,5 +342,12 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
     record.setIsAbnormal(null); // 待业务规则判断
     record.setJudgedByModel("RULE_BASED");
     noiseRecordMapper.insert(record);
+
+    // 自动触发混合模型判断
+    try {
+      thresholdService.autoJudgeWithHybrid(record);
+    } catch (Exception e) {
+      // 判断失败不阻塞模拟生成
+    }
   }
 }

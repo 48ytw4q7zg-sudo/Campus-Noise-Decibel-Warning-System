@@ -33,12 +33,14 @@ const routes = [
       {
         path: 'area-config',
         name: 'AreaConfig',
-        component: () => import('@/views/AreaConfigPage.vue')
+        component: () => import('@/views/AreaConfigPage.vue'),
+        meta: { adminOnly: true }
       },
       {
         path: 'threshold-config',
         name: 'ThresholdConfig',
-        component: () => import('@/views/ThresholdConfigPage.vue')
+        component: () => import('@/views/ThresholdConfigPage.vue'),
+        meta: { adminOnly: true }
       },
       {
         path: 'statistics',
@@ -48,7 +50,8 @@ const routes = [
       {
         path: 'settings',
         name: 'SystemSettings',
-        component: () => import('@/views/SystemSettingsPage.vue')
+        component: () => import('@/views/SystemSettingsPage.vue'),
+        meta: { adminOnly: true }
       }
     ]
   }
@@ -62,6 +65,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
     return next({ path: '/login', query: { redirect: to.fullPath } })
+  }
+  // Admin-only route guard
+  if (to.meta.adminOnly) {
+    const role = localStorage.getItem('role');
+    if (role !== '管理员') {
+      return next({ path: '/' })
+    }
   }
   next()
 })

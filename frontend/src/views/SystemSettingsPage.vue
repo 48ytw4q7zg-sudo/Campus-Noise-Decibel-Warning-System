@@ -190,7 +190,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { useUserStore } from '@/stores/user';
 import { getCcswitchStatus, reloadCcswitchConfig } from '@/api/ccswitch';
 import { classifyNoise, updateAiConfig } from '@/api/ai';
-import { queryReports, generateReport } from '@/api/report';
+import { queryReports, generateReport, downloadReport } from '@/api/report';
 import { importData, exportReport } from '@/api/import';
 
 const userStore = useUserStore();
@@ -312,9 +312,21 @@ const handleGenerateReport = async () => {
   }
 };
 
-const handleDownloadReport = (row) => {
-  // 触发下载，可对接报告导出 API
-  ElMessage.info('报告下载功能：' + (row.title || row.id));
+const handleDownloadReport = async (row) => {
+  try {
+    const blob = await downloadReport(row.id);
+    const url = window.URL.createObjectURL(new Blob([blob], { type: 'text/markdown;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `report_${row.id}_${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    ElMessage.success('报告下载成功');
+  } catch (e) {
+    // 拦截器已处理
+  }
 };
 
 // ===== 数据管理 =====
