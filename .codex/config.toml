@@ -1,0 +1,8 @@
+[mcp_servers.repowise]
+args = [
+    "mcp",
+    "C:/Users/Administrator/Desktop/Question-12---Personal-Financial-Accounting-and-Analysis-System-main",
+    "--transport",
+    "stdio",
+]
+command = "repowise"

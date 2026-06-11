@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{try{const j=JSON.parse(Buffer.concat(c).toString());const fp=j.tool_input&&j.tool_input.file_path;if(fp&&/.(java|vue|js|ts|xml|yml|yaml|sql|css|scss|html)$/i.test(fp)){console.log(JSON.stringify({systemMessage:'[ECC] '+fp.split('/').pop().split('\\\\').pop()+' changed — everything-claude-code active',hookSpecificOutput:{hookEventName:'PostToolUse',additionalContext:'File '+fp+' was modified. Apply everything-claude-code and everything-claude-code-conventions: verify naming conventions (camelCase JS, PascalCase Vue pages), code style (2-space indent, single quotes), error handling (try-catch), commit format (conventional commits).'}}))}}catch(e){}});process.stdin.resume()\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{try{const j=JSON.parse(Buffer.concat(c).toString());console.log(JSON.stringify({systemMessage:'[ECC] Session ended — consider conventional commit (feat/fix/docs/chore)'}))}catch(e){}});process.stdin.resume()\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

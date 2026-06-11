@@ -1,0 +1,97 @@
+{
+  "permissions": {
+    "allow": [
+      "*",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git submodule *)",
+      "Bash(git ls-tree *)",
+      "Bash(git rm *)",
+      "Skill(find-skills)",
+      "Bash(npx skills *)",
+      "WebSearch",
+      "PowerShell(Register-ScheduledTask *)",
+      "PowerShell(Get-ScheduledTask *)",
+      "PowerShell(git *)",
+      "Skill(code-reviewer-be)",
+      "Skill(code-reviewer-fe)",
+      "Skill(security-review)",
+      "Skill(Q-CR)",
+      "Skill(systematic-debugging)",
+      "Skill(everything-claude-code)",
+      "Skill(continuous-learning-v2)",
+      "Skill(agency-agents-ai-specialists)",
+      "Skill(agent-browser)",
+      "Skill(tavily-search)",
+      "Skill(self-improving-agent)",
+      "Skill(gstack)",
+      "Skill(frontend-design)",
+      "Skill(code-simplifier)",
+      "Skill(planning-with-files)",
+      "Skill(using-superpowers)",
+      "Bash(netstat -ano)",
+      "Bash(where.exe node *)",
+      "Bash(where.exe pnpm *)",
+      "Bash(where.exe mvn *)",
+      "Bash(where.exe java *)",
+      "Bash(where.exe pnpm.cmd)",
+      "Read(//c/Users/Administrator/AppData/Roaming/npm/**)",
+      "Bash(tasklist)",
+      "Bash(tasklist.exe)",
+      "Bash(mkdir -p logs)",
+      "Bash(rm -f logs/backend-startup.log logs/backend-error.log)",
+      "Bash(powershell.exe -NoProfile -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','cd /d \\\\\"C:\\\\\\\\Users\\\\\\\\Administrator\\\\\\\\Desktop\\\\\\\\Question-12---Personal-Financial-Accounting-and-Analysis-System-main\\\\\\\\system\\\\\\\\backend\\\\\" && mvn -B spring-boot:run' -WindowStyle Minimized -RedirectStandardOutput 'C:\\\\\\\\Users\\\\\\\\Administrator\\\\\\\\Desktop\\\\\\\\Question-12---Personal-Financial-Accounting-and-Analysis-System-main\\\\\\\\logs\\\\\\\\backend-startup.log' -RedirectStandardError 'C:\\\\\\\\Users\\\\\\\\Administrator\\\\\\\\Desktop\\\\\\\\Question-12---Personal-Financial-Accounting-and-Analysis-System-main\\\\\\\\logs\\\\\\\\backend-error.log'\")",
+      "Bash(echo \"PS exit: $?\")",
+      "Bash(where.exe mvn.cmd)",
+      "Bash(where.exe pnpm.CMD)",
+      "Bash(taskkill.exe /F /IM mvn.cmd)",
+      "Bash(taskkill.exe /F /IM java.exe)",
+      "Bash(mkdir -p \"/c/Users/Administrator/Desktop/Question-12---Personal-Financial-Accounting-and-Analysis-System-main/logs\")",
+      "Bash(pwd -W)",
+      "Bash(cmd.exe /c \"cd /d \\\\\"$\\(pwd -W || pwd\\)\\\\system\\\\backend\\\\\" && mvn.cmd -B -DskipTests compile\")"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enabledMcpjsonServers": [
+    "repowise"
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{try{const j=JSON.parse(Buffer.concat(c).toString());const fp=j.tool_input&&j.tool_input.file_path;if(fp&&/.(java|vue|js|ts|xml|yml|yaml|sql|css|scss|html)$/i.test(fp)){console.log(JSON.stringify({systemMessage:'[ECC] '+fp.split('/').pop().split('\\\\').pop()+' changed — everything-claude-code active',hookSpecificOutput:{hookEventName:'PostToolUse',additionalContext:'File '+fp+' was modified. Apply everything-claude-code and everything-claude-code-conventions: verify naming conventions (camelCase JS, PascalCase Vue pages), code style (2-space indent, single quotes), error handling (try-catch), commit format (conventional commits).'}}))}}catch(e){}});process.stdin.resume()\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{try{const j=JSON.parse(Buffer.concat(c).toString());console.log(JSON.stringify({systemMessage:'[ECC] Session ended — consider conventional commit (feat/fix/docs/chore)'}))}catch(e){}});process.stdin.resume()\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(git push gitee *)",
+      "Bash(git push gitee2 *)",
+      "Bash(git push origin *)",
+      "Bash(git pull gitee *)",
+      "Bash(git pull gitee2 *)",
+      "Bash(git pull origin *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

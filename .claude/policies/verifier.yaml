@@ -1,0 +1,5 @@
+# Author: qxw · Author-ID: 2501060122
+isolation: "fresh_process"
+validation_pipeline: ["static", "unit", "integration", "semantic", "regression", "style"]
+deterministic_seed: 42
+fail_fast: true

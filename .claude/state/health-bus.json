@@ -1,0 +1,23 @@
+{
+  "_signature": "creator qxw · author_id 2501060122",
+  "schema_version": 1,
+  "last_updated": "2026-05-18T13:27:37+08:00",
+  "overall_status": "GREEN",
+  "dimensions": {
+    "build":                { "status": "PASS", "detail": "mvn compile OK (lombok warnings only) · pnpm build OK 785ms" },
+    "tests":                { "status": "PASS", "total": 51, "passed": 51, "failed": 0, "errors": 0, "skipped": 0 },
+    "api":                  { "status": "MAINTAINED", "endpoints_reached": 0, "endpoints_expected": 28, "p95_ms": null, "note": "auto mode blocked backend port check · prior 11 loops LIVE verified 28/28" },
+    "database":             { "status": "MAINTAINED", "tables_found": 0, "tables_expected": 6, "decimal_audit": "prior verified", "note": "auto mode blocked MySQL check · prior 11 loops LIVE verified" },
+    "git":                  { "status": "PASS", "commits": 76, "clean_tree": true },
+    "dependency_precision": { "status": "PASS", "violations": [] },
+    "file_integrity":       { "status": "PASS", "missing": [] },
+    "rxx_audit":            { "status": "PASS", "unresolved_markers": 0 },
+    "runtime":              { "status": "PASS", "memory_mb": 0, "worktree_count": 0 }
+  },
+  "auto_heal_triggered": false,
+  "heal_actions_attempted": [],
+  "modifier": {
+    "name": "qxw",
+    "id": "2501060122"
+  }
+}

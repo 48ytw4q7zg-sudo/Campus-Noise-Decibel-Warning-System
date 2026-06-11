@@ -1,0 +1,6 @@
+# Author: qxw · Author-ID: 2501060122
+environments: ["local", "docker", "clean_install"]
+require_consensus: 0.85
+windows_fallback_consensus: 0.80
+critical_checks: ["install_success", "test_pass_rate", "benchmark_delta"]
+start_at_level: 3

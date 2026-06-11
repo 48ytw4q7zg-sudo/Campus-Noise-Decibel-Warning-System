@@ -1,0 +1,30 @@
+# Java / Spring Boot / Maven
+target/
+*.jar
+*.war
+*.class
+
+# Gradle
+build/
+.gradle/
+
+# Node.js / Vue
+node_modules/
+dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志和临时文件
+*.log
+*.tmp
+
+# 环境配置(防泄漏密码)
+.env
+application-local.yml

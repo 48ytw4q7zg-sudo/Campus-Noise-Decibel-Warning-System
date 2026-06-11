@@ -1,0 +1,32 @@
+# Author: qxw · Author-ID: 2501060122
+checks:
+  build:
+    commands:
+      - "cd system/backend && mvn clean compile"
+      - "cd system/frontend && pnpm install && pnpm build"
+    timeout_seconds: 180
+  test:
+    patterns:
+      - "system/backend/src/test/java/**/*Test.java"
+      - "system/frontend/src/**/*.spec.js"
+    min_pass_rate: 0.95
+    max_flaky_rate: 0.05
+    min_cases: 37
+  api:
+    endpoints:
+      - "http://localhost:8080/api/user/login"
+      - "http://localhost:8080/api/account"
+      - "http://localhost:8080/api/transaction"
+    timeout_ms: 3000
+    max_p95_latency_ms: 500
+    total_expected: 28
+  database:
+    query: "SELECT 1"
+    connection_timeout_seconds: 5
+    required_tables: ["user","account","category","transaction","budget","recurring_bill"]
+  runtime:
+    memory_limit_mb: 4096
+    max_worktrees: 10
+    max_processes: 20
+  ci:
+    enabled: false

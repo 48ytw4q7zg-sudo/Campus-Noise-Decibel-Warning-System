@@ -1,0 +1,11 @@
+# Author: qxw · Author-ID: 2501060122
+sandbox_type: "git-worktree"
+max_diff_files: 20
+max_diff_lines: 500
+paranoid_max_diff_files: 10
+paranoid_max_diff_lines: 250
+absolute_max_diff_files: 5
+absolute_max_diff_lines: 100
+min_validation: "unit"
+allow_refactor: true
+require_min_skills: 2

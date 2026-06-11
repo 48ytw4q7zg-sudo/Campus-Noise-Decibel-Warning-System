@@ -1,0 +1,19 @@
+{
+  "_signature": "creator qxw · author_id 2501060122",
+  "schema_version": 1,
+  "tasks": [],
+  "completed": [],
+  "blocked": [],
+  "task_template": {
+    "id": "<auto-incremented>",
+    "title": "<short imperative>",
+    "priority": "P0 | P1 | P2 | P3",
+    "estimated_loops": 1,
+    "skills_required": [],
+    "files_affected_glob": [],
+    "verifier_invariants_to_check": [],
+    "created_at": null,
+    "owner": "scheduler",
+    "author_signature": "qxw · 2501060122"
+  }
+}

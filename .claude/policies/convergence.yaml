@@ -1,0 +1,27 @@
+# Author: qxw · Author-ID: 2501060122
+# v1.0: stability convergence gates
+convergence_conditions:
+  stable_loops_required: 5
+  max_objective_distance: 0.02
+  require_zero_regression: true
+  require_all_health_green: true
+  require_modules_frozen: true
+  max_review_iterations_last_n_loops: 2
+  allow_zero_blocked_tasks: true
+  min_acceptance_pass: 135
+  min_total_score: 95.0
+  require_environment_consensus: true
+  consensus_rate: 0.85
+  require_deterministic_replay: true
+  require_meta_verification: true
+  require_zero_increasing_patch_size: true
+  require_zero_recurring_failures: true
+  require_zero_tech_debt_growth: true
+  require_repo_memory_green: true
+  require_context_freshness: true
+  require_predictive_replay: true
+terminal_freeze:
+  deny_code_changes: true
+  allow_docs_and_release: true
+  generate_release_bundle: true
+  export_termination_proof: true

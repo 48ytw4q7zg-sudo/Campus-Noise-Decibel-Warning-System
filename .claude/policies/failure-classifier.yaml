@@ -1,0 +1,23 @@
+# Author: qxw · Author-ID: 2501060122
+# v1.0: 21 failure classes with auto-degradation support
+failure_classes:
+  compile:      { strategy: "immediate_fix",    max_retries: 3, auto_escalate: false }
+  unit_test:    { strategy: "standard_fix",     max_retries: 3, auto_escalate: false }
+  integration:  { strategy: "deep_fix",         max_retries: 2, auto_escalate: true  }
+  semantic:     { strategy: "high_risk_fix",    max_retries: 2, auto_escalate: true  }
+  replay:       { strategy: "force_rollback",   max_retries: 2, auto_escalate: true  }
+  flaky:        { strategy: "retry_only",       max_retries: 3, auto_escalate: false }
+  architecture: { strategy: "blocked",          max_retries: 0, auto_escalate: true  }
+  resource:     { strategy: "cleanup_and_retry",max_retries: 3, auto_escalate: false }
+  consensus_fail: { strategy: "rebuild_env_retry", max_retries: 2, auto_escalate: true }
+  meta_verify_fail: { strategy: "deep_audit_retry", max_retries: 2, auto_escalate: true }
+  syntax_failure:      { strategy: "immediate_fix",          max_retries: 2, auto_escalate: false }
+  dependency_failure:  { strategy: "dependency_repair",      max_retries: 3, auto_escalate: true  }
+  runtime_failure:     { strategy: "stacktrace_analysis",    max_retries: 3, auto_escalate: true  }
+  dto_drift:           { strategy: "sync_dto_from_db",      max_retries: 2, auto_escalate: true  }
+  api_contract_drift:  { strategy: "sync_api_from_impl",    max_retries: 2, auto_escalate: true  }
+  schema_drift:        { strategy: "sync_schema_from_ddl",  max_retries: 2, auto_escalate: true  }
+  hallucination_patch: { strategy: "immediate_rollback",     max_retries: 1, auto_escalate: true, force_rollback: true, freeze_patch: true }
+  infinite_fix_loop:   { strategy: "mandatory_rollback",    max_retries: 0, auto_escalate: true, force_rollback: true, reduce_context: true }
+  performance_regression: { strategy: "run_benchmark_compare", max_retries: 2, auto_escalate: true  }
+  security_regression:    { strategy: "immediate_escalate_audit", max_retries: 1, auto_escalate: true }

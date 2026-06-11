@@ -1,0 +1,11 @@
+﻿# Author: qxw · Author-ID: 2501060122
+author: "qxw"
+author_id: "2501060122"
+types: ["feat", "fix", "docs", "refactor", "test", "chore", "perf"]
+scopes: ["auth", "account", "transaction", "dashboard", "budget", "recurring", "api", "db", "build", "ci"]
+subject_max_length: 50
+require_validation_results: true
+reject_missing_fields: true
+forbidden_messages: ["temp", "wip", "fix again", "try fix", "final final", "test commit"]
+auto_detect_scope: true
+auto_detect_type: true

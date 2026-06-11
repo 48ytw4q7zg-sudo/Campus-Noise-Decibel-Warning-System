@@ -1,0 +1,9 @@
+﻿# Author: qxw · Author-ID: 2501060122
+max_review_iterations: 3
+max_same_issue_attempts: 3
+max_same_file_modifications: 5
+freeze_on_same_failure_repeated: true
+benchmark_variance_threshold: 0.05
+actions:
+  on_limited_attempts_exceeded: "mark_blocked"
+  on_file_modification_exceeded: "freeze_module"

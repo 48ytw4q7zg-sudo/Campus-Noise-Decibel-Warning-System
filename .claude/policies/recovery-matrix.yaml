@@ -1,0 +1,52 @@
+# Author: qxw · Author-ID: 2501060122
+# v1.0: extended with hallucination_patch, infinite_fix_loop, performance/security regression
+recovery_matrix:
+  compile_failure:
+    - action: "rerun_compile"
+    - action: "fix_dependencies"
+    - action: "restart_sandbox"
+  test_failure:
+    - action: "isolate_flaky"
+    - action: "increase_validation"
+    - action: "rollback_last_patch"
+  api_failure:
+    - action: "recheck_api_spec"
+    - action: "check_database_connection"
+    - action: "restart_service"
+  db_failure:
+    - action: "check_db_service"
+    - action: "verify_credentials"
+    - action: "reinit_sql"
+  runtime_degradation:
+    - action: "cleanup_worktrees"
+    - action: "restart_session"
+    - action: "force_snapshot_rollback"
+  consensus_fail:
+    - action: "cleanup_environment"
+    - action: "rebuild_docker"
+    - action: "retry_consensus"
+  meta_verify_fail:
+    - action: "deep_audit_changes"
+    - action: "fix_documentation_drift"
+    - action: "fix_api_dto_drift"
+    - action: "revalidate_all_meta_checks"
+  hallucination_patch:
+    - action: "immediate_rollback"
+    - action: "freeze_patch"
+    - action: "log_to_recurring_failures"
+    - action: "replan_with_verified_assumptions"
+  infinite_fix_loop:
+    - action: "mandatory_rollback"
+    - action: "reduce_context_window"
+    - action: "switch_fix_strategy"
+    - action: "isolate_module"
+  performance_regression:
+    - action: "run_benchmark"
+    - action: "compare_baseline"
+    - action: "identify_bottleneck"
+    - action: "apply_optimization"
+  security_regression:
+    - action: "immediate_escalate"
+    - action: "full_security_audit"
+    - action: "patch_vulnerability"
+    - action: "reverify_all_affected"

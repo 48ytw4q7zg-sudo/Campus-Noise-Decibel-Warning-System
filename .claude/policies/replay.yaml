@@ -1,0 +1,8 @@
+# Author: qxw · Author-ID: 2501060122
+replay_sources:
+  - "historical_api_sessions"
+  - "user_workflow_logs"
+  - "past_regression_scenarios"
+schedule: "after_each_acceptance"
+replay_timeout_seconds: 300
+deterministic_seed: 42
