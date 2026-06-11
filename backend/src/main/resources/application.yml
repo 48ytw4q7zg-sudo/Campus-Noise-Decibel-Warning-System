@@ -6,7 +6,7 @@ spring:
     url: jdbc:mysql://localhost:3306/noise_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: <请填写>
+    password: root
   servlet:
     multipart:
       max-file-size: 10MB
@@ -20,8 +20,11 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 jwt:
-  secret: <请填写至少32字符的密钥>
+  secret: campus-noise-warning-system-jwt-secret-key-2026
   expiration: 7200
+
+ccswitch:
+  base-url: http://localhost:5000
 
 logging:
   level:

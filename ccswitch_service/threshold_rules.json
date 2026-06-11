@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {"location": "图书馆", "timeSegment": "早读", "thresholdValue": 43, "description": "允许轻微晨读噪声，较上课时段放宽3dB"},
+    {"location": "图书馆", "timeSegment": "上课/晚自修", "thresholdValue": 40, "description": "严格安静要求，参考GB50118-2010高要求标准"},
+    {"location": "图书馆", "timeSegment": "午休", "thresholdValue": 40, "description": "午休期间保持安静"},
+    {"location": "图书馆", "timeSegment": "活动", "thresholdValue": 45, "description": "下午活动时段适当放宽"},
+    {"location": "图书馆", "timeSegment": "夜间静校", "thresholdValue": 35, "description": "最严格管控，保障夜间安静"},
+    {"location": "食堂", "timeSegment": "用餐时段", "thresholdValue": 65, "description": "允许正常交谈、餐具碰撞"},
+    {"location": "食堂", "timeSegment": "非用餐时段", "thresholdValue": 55, "description": "非用餐时段人员稀少，降低阈值"},
+    {"location": "操场", "timeSegment": "活动时段", "thresholdValue": 70, "description": "体育活动噪声容忍度高，参考GB3096-2008"},
+    {"location": "操场", "timeSegment": "活动/晚自修", "thresholdValue": 60, "description": "傍晚活动逐渐减少"},
+    {"location": "操场", "timeSegment": "夜间静校", "thresholdValue": 45, "description": "夜间禁止剧烈活动，按1类区夜间标准"},
+    {"location": "宿舍", "timeSegment": "上课", "thresholdValue": 45, "description": "上课时段宿舍应安静"},
+    {"location": "宿舍", "timeSegment": "午休", "thresholdValue": 40, "description": "午休时段严格控制"},
+    {"location": "宿舍", "timeSegment": "活动/晚自修", "thresholdValue": 45, "description": "日常活动噪声容忍度"},
+    {"location": "宿舍", "timeSegment": "夜间静校", "thresholdValue": 40, "description": "夜间休息，适当严格"}
+  ],
+  "version": 1,
+  "updatedAt": "2026-06-11T00:00:00"
+}

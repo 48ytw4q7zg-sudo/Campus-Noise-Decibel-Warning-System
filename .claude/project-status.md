@@ -15,15 +15,15 @@
 
 ## 当前状态字段(9 个)
 
-- **当前 Phase**:Phase 0 (项目初始化 · 标定卡已制作 · 待 /init-skeleton)
+- **当前 Phase**:Phase 4-5-6 (P0+P1+P2 全部完成 · 全栈联调10+模块25+接口通过 · 后端70+源文件前端30+文件编译通过 · ccswitch Flask集成验证通过)
 - **上次更新**:2026-06-11
-- **已完成文档**:PRD.md, TECH_DESIGN.md
-- **数据库表**:user, noise_record, threshold_rule, alert_log, area_config, report
-- **已有接口**:无
-- **已完成的后端模块**:无
-- **已完成的前端页面**:无
-- **Bug修复记录**:0 个
-- **测试**:0 用例
+- **已完成文档**:PRD.md, TECH_DESIGN.md, DATABASE_DESIGN.md, API_DESIGN.md (R-00~R-04 全部闭环)
+- **数据库表**:user, noise_record, threshold_rule, alert_log, area_config, report (全部6表+种子数据+12条预置阈值规则)
+- **已有接口**:25+ (P0: auth/* users/* noise/* thresholds/* alerts/* areas/* dashboard/*; P1: thresholds/rules CRUD+adaptive+hybrid, statistics/*, noise/search+export; P2: reports/*, ai/*, ccswitch/*, data/import+export-report, statistics/multi-dim+heatmap+radar)
+- **已完成的后端模块**:User, NoiseRecord(含导入导出+定时模拟), Threshold+ThresholdRule(CRUD+自适应+混合), AlertLog, AreaConfig, Dashboard, Statistics(含P2多维+热力图+雷达图), Report(含定时生成), Ai(规则分类), Ccswitch(Java集成) — P0+P1+P2 全覆盖
+- **已完成的前端页面**:LoginPage, DashboardPage, AppLayout, NoiseMonitorPage(含导入导出), AlertHistoryPage, AreaConfigPage, ThresholdConfigPage(含自适应+混合模型Tab), StatisticsPage(含热力图+雷达图Tab), SystemSettingsPage(含ccswitch+AI+报告+数据管理) + 12个 api/*.js + stores/user.js
+- **Bug修复记录**:5 个 (alert_type字段长度/confirm_status中英文/功能区名称/lombok注解处理器/报告生成ISO8601格式兼容+null安全/CSV导入注释行跳过)
+- **测试**:全栈联调10次+ 验证通过
 
 ## 每 Phase 末该做的事
 

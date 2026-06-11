@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from '@/views/LoginPage.vue'
-import HomePage from '@/views/HomePage.vue'
+import AppLayout from '@/components/AppLayout.vue'
+import DashboardPage from '@/views/DashboardPage.vue'
 
 const routes = [
   {
@@ -11,9 +12,45 @@ const routes = [
   },
   {
     path: '/',
-    name: 'Home',
-    component: HomePage,
-    meta: { requiresAuth: true }
+    component: AppLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Dashboard',
+        component: DashboardPage
+      },
+      {
+        path: 'noise-monitor',
+        name: 'NoiseMonitor',
+        component: () => import('@/views/NoiseMonitorPage.vue')
+      },
+      {
+        path: 'alert-history',
+        name: 'AlertHistory',
+        component: () => import('@/views/AlertHistoryPage.vue')
+      },
+      {
+        path: 'area-config',
+        name: 'AreaConfig',
+        component: () => import('@/views/AreaConfigPage.vue')
+      },
+      {
+        path: 'threshold-config',
+        name: 'ThresholdConfig',
+        component: () => import('@/views/ThresholdConfigPage.vue')
+      },
+      {
+        path: 'statistics',
+        name: 'Statistics',
+        component: () => import('@/views/StatisticsPage.vue')
+      },
+      {
+        path: 'settings',
+        name: 'SystemSettings',
+        component: () => import('@/views/SystemSettingsPage.vue')
+      }
+    ]
   }
 ]
 
