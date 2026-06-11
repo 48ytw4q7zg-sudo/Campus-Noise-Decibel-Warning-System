@@ -1,0 +1,116 @@
+version: '3.8'
+
+# 校园噪音分贝预警员系统 — Docker Compose 部署
+# 启动: docker compose up -d
+# 停止: docker compose down
+# 日志: docker compose logs -f
+
+services:
+  # ============================================================
+  # 1. MySQL 8.4 LTS (数据库)
+  # ============================================================
+  mysql:
+    image: mysql:8.4
+    container_name: noise_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      MYSQL_DATABASE: noise_db
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - noise_net
+
+  # ============================================================
+  # 2. SpringBoot 后端 (Port 8080)
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: noise_backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/noise_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8mb4
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123}
+      JWT_SECRET: ${JWT_SECRET:-campus-noise-warning-system-jwt-secret-key-2026}
+      CCSWITCH_BASE_URL: ${CCSWITCH_BASE_URL:-http://ccswitch:5000}
+    ports:
+      - "8080:8080"
+    networks:
+      - noise_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/dashboard/overview"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # 3. ccswitch 配置服务 (Flask · Port 5000 · P2 可选)
+  # ============================================================
+  ccswitch:
+    build:
+      context: ./ccswitch_service
+      dockerfile: Dockerfile
+    container_name: noise_ccswitch
+    restart: unless-stopped
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      CCSWITCH_PORT: ${CCSWITCH_PORT:-15721}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./ccswitch_service/threshold_rules.json:/app/threshold_rules.json
+    networks:
+      - noise_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # 4. 前端 (nginx · Port 80)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: noise_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - noise_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  noise_net:
+    driver: bridge

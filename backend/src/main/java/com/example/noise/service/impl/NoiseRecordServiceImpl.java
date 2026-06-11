@@ -48,6 +48,9 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
   /** 批量导入单次上限 */
   private static final int BATCH_MAX_SIZE = 5000;
 
+  /** 分页查询最大 pageSize */
+  private static final int PAGE_SIZE_MAX = 100;
+
   /** 默认判断模型 */
   private static final String DEFAULT_JUDGED_BY_MODEL = "RULE_BASED";
 
@@ -213,6 +216,10 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
                                        Double minDb, Double maxDb,
                                        Integer isAbnormal, String sortBy,
                                        String sortOrder) {
+    // 校验 pageSize 上限
+    if (page.getSize() > PAGE_SIZE_MAX) {
+      throw new BusinessException(400, "pageSize 不能超过 " + PAGE_SIZE_MAX);
+    }
     LambdaQueryWrapper<NoiseRecord> wrapper = new LambdaQueryWrapper<>();
 
     // 功能区筛选
@@ -268,6 +275,10 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
                                             Double minDb, Double maxDb,
                                             Integer isAbnormal, String sortBy,
                                             String sortOrder) {
+    // 校验 pageSize 上限
+    if (page.getSize() > PAGE_SIZE_MAX) {
+      throw new BusinessException(400, "pageSize 不能超过 " + PAGE_SIZE_MAX);
+    }
     LambdaQueryWrapper<NoiseRecord> wrapper = new LambdaQueryWrapper<>();
 
     // 关键字：deviceId 模糊匹配
