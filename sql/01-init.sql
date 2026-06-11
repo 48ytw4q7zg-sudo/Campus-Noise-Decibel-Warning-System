@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS report (
 
 -- 7.1 预置管理员账号 （密码 admin123 的 BCrypt 哈希）
 INSERT INTO user (username, password, role, status) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', '管理员', 1)
+('admin', '$2a$10$skfvomZ/j55/.U2QebmklOfL2mHT9YxGnKhXAzHDjZur8zKQipTYS', '管理员', 1)
 ON DUPLICATE KEY UPDATE username = username;
 
 -- 7.2 四大功能区初始配置

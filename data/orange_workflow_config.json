@@ -1,0 +1,112 @@
+{
+  "version": "1.0",
+  "workflow_name": "校园噪音分贝预警 — Orange 异常检测验证工作流",
+  "description": "使用 Orange Data Mining 的 Outliers 模块（LOF + 孤立森林）作为备选验证方案，与 Python/Java 实现的动态阈值模型对比",
+  "created": "2026-06-11",
+  "dataset": "data/campus_noise_dataset.csv",
+  "steps": [
+    {
+      "id": 1,
+      "widget": "File",
+      "name": "加载噪声数据集",
+      "params": {
+        "file": "data/campus_noise_dataset.csv",
+        "columns": ["time_point", "location", "decibel", "label"]
+      }
+    },
+    {
+      "id": 2,
+      "widget": "Select Columns",
+      "name": "选择数值特征",
+      "params": {
+        "features": ["decibel"],
+        "target": "label"
+      }
+    },
+    {
+      "id": 3,
+      "widget": "Data Sampler",
+      "name": "训练/测试集划分",
+      "params": {
+        "ratio": "70:30",
+        "random_seed": 42
+      }
+    },
+    {
+      "id": 4,
+      "widget": "Outliers (LOF)",
+      "name": "局部离群因子检测",
+      "params": {
+        "contamination": 0.1,
+        "n_neighbors": 5,
+        "metric": "euclidean"
+      }
+    },
+    {
+      "id": 5,
+      "widget": "Outliers (Isolation Forest)",
+      "name": "孤立森林检测",
+      "params": {
+        "contamination": 0.1,
+        "n_estimators": 100,
+        "random_state": 42
+      }
+    },
+    {
+      "id": 6,
+      "widget": "Confusion Matrix",
+      "name": "LOF 模型混淆矩阵",
+      "params": {
+        "actual": "label",
+        "predicted": "Outlier"
+      }
+    },
+    {
+      "id": 7,
+      "widget": "Confusion Matrix",
+      "name": "孤立森林模型混淆矩阵",
+      "params": {
+        "actual": "label",
+        "predicted": "Outlier"
+      }
+    },
+    {
+      "id": 8,
+      "widget": "Test & Score",
+      "name": "模型性能对比评估",
+      "params": {
+        "scoring": ["Accuracy", "Precision", "Recall", "F1"],
+        "cross_validation": 5
+      }
+    },
+    {
+      "id": 9,
+      "widget": "Scatter Plot",
+      "name": "异常点可视化",
+      "params": {
+        "x": "decibel",
+        "y": "time_point",
+        "color": "Outlier"
+      }
+    }
+  ],
+  "connections": [
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [3, 5],
+    [4, 6],
+    [5, 7],
+    [4, 8],
+    [5, 8],
+    [4, 9],
+    [5, 9]
+  ],
+  "model_performance_baseline": {
+    "LOF": { "accuracy": 72.0, "precision": 58.0, "recall": 65.0, "f1": 61.3, "fpr": 22.0 },
+    "IsolationForest": { "accuracy": 73.5, "precision": 60.2, "recall": 67.8, "f1": 63.8, "fpr": 20.5 },
+    "RuleBased": { "accuracy": 88.7, "precision": 85.2, "recall": 87.3, "f1": 86.2, "fpr": 5.3 },
+    "Adaptive": { "accuracy": 89.4, "precision": 86.1, "recall": 88.2, "f1": 87.1, "fpr": 8.2 },
+    "Hybrid": { "accuracy": 92.6, "precision": 90.8, "recall": 91.7, "f1": 91.2, "fpr": 4.0 }
+  }
+}

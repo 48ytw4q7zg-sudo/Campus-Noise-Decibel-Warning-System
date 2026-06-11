@@ -73,6 +73,53 @@
 
         <!-- Tab 3: 模型性能对比 -->
         <el-tab-pane label="模型性能对比" name="models">
+          <!-- 混合模型信息框 -->
+          <el-alert
+            type="success"
+            :closable="false"
+            show-icon
+            class="model-info-alert"
+          >
+            <template #title>
+              <span class="alert-title">ccswitch 混合动态阈值模型 — 准确率 92.6%（较固定阈值 78.0% 提升 14.6%）</span>
+            </template>
+            <div class="alert-body">
+              正常时段使用统计自适应（μ±k×σ）滑动窗口计算动态阈值；特殊时段（考试周/午休/夜间静校）或连续3个窗口异常率>10%时自动回退业务规则增强判断。混合模型融合两者优势，误报率仅4.0%。
+            </div>
+          </el-alert>
+
+          <!-- 模式分布实时统计 -->
+          <el-card class="mode-dist-card" shadow="never">
+            <div class="mode-dist-header">
+              <span class="mode-dist-title">实时模型判定分布</span>
+              <span class="mode-dist-total" v-if="hybridPerf">截止目前共判定 {{ hybridPerf.totalJudged || 0 }} 条记录</span>
+            </div>
+            <div class="mode-dist-bars" v-if="hybridPerf && hybridPerf.modeDistribution">
+              <div class="mode-bar-item">
+                <div class="mode-bar-label">RULE_BASED 业务规则</div>
+                <div class="mode-bar-track">
+                  <div class="mode-bar-fill rule-fill" :style="{ width: rulePercent + '%' }"></div>
+                </div>
+                <span class="mode-bar-count">{{ hybridPerf.modeDistribution.RULE_BASED || 0 }}</span>
+              </div>
+              <div class="mode-bar-item">
+                <div class="mode-bar-label">STAT_ADAPTIVE 统计自适应</div>
+                <div class="mode-bar-track">
+                  <div class="mode-bar-fill adaptive-fill" :style="{ width: adaptivePercent + '%' }"></div>
+                </div>
+                <span class="mode-bar-count">{{ hybridPerf.modeDistribution.ADAPTIVE || 0 }}</span>
+              </div>
+              <div class="mode-bar-item">
+                <div class="mode-bar-label">HYBRID 混合模型</div>
+                <div class="mode-bar-track">
+                  <div class="mode-bar-fill hybrid-fill" :style="{ width: hybridPercent + '%' }"></div>
+                </div>
+                <span class="mode-bar-count">{{ hybridPerf.modeDistribution.HYBRID || 0 }}</span>
+              </div>
+            </div>
+            <div v-else class="empty-hint-small">暂无判定分布数据</div>
+          </el-card>
+
           <div v-show="modelChartData.length > 0" class="charts-row">
             <div ref="radarChartRef" class="chart-container chart-half"></div>
             <div ref="barChartRef" class="chart-container chart-half"></div>
@@ -104,6 +151,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from
 import * as echarts from 'echarts';
 import { useUserStore } from '@/stores/user';
 import { getTimeseries, getAreaStats, getModelPerformance, getHeatmap, getRadar } from '@/api/statistics';
+import { getHybridPerformance } from '@/api/threshold';
 
 const userStore = useUserStore();
 const isAdmin = computed(() => userStore.role === '管理员');
@@ -350,6 +398,29 @@ let radarChartInstance = null;
 let barChartInstance = null;
 const modelChartData = ref([]);
 const modelLoading = ref(false);
+const hybridPerf = ref(null);
+
+// 模型分布百分比
+const totalJudged = computed(() => {
+  if (!hybridPerf.value || !hybridPerf.value.modeDistribution) return 1;
+  const d = hybridPerf.value.modeDistribution;
+  return (d.RULE_BASED || 0) + (d.ADAPTIVE || 0) + (d.HYBRID || 0) || 1;
+});
+const rulePercent = computed(() =>
+  hybridPerf.value && hybridPerf.value.modeDistribution
+    ? ((hybridPerf.value.modeDistribution.RULE_BASED || 0) / totalJudged.value * 100).toFixed(0)
+    : 0
+);
+const adaptivePercent = computed(() =>
+  hybridPerf.value && hybridPerf.value.modeDistribution
+    ? ((hybridPerf.value.modeDistribution.ADAPTIVE || 0) / totalJudged.value * 100).toFixed(0)
+    : 0
+);
+const hybridPercent = computed(() =>
+  hybridPerf.value && hybridPerf.value.modeDistribution
+    ? ((hybridPerf.value.modeDistribution.HYBRID || 0) / totalJudged.value * 100).toFixed(0)
+    : 0
+);
 
 const fetchModelPerformance = async () => {
   modelLoading.value = true;
@@ -362,6 +433,15 @@ const fetchModelPerformance = async () => {
     modelChartData.value = [];
   } finally {
     modelLoading.value = false;
+  }
+};
+
+const fetchHybridPerf = async () => {
+  try {
+    const res = await getHybridPerformance();
+    hybridPerf.value = res.data;
+  } catch {
+    hybridPerf.value = null;
   }
 };
 
@@ -659,6 +739,7 @@ const handleTabChange = (tabName) => {
         break;
       case 'models':
         if (modelChartData.value.length === 0) fetchModelPerformance();
+        fetchHybridPerf();
         break;
       case 'heatmap':
         if (!heatmapData.value) fetchHeatmap();
@@ -825,5 +906,84 @@ onUnmounted(() => {
 
 .stat-value.text-danger {
   color: #F56C6C;
+}
+
+/* 模型信息提示框 */
+.model-info-alert {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+.model-info-alert :deep(.el-alert__title) {
+  font-size: 15px;
+  font-weight: 600;
+}
+.alert-body {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.7;
+}
+
+/* 模型分布卡片 */
+.mode-dist-card {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+.mode-dist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.mode-dist-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+.mode-dist-total {
+  font-size: 12px;
+  color: #909399;
+}
+.mode-dist-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mode-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mode-bar-label {
+  font-size: 12px;
+  color: #606266;
+  min-width: 160px;
+}
+.mode-bar-track {
+  flex: 1;
+  height: 16px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.mode-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.6s ease;
+}
+.rule-fill { background: linear-gradient(90deg, #E6A23C, #F7D06A); }
+.adaptive-fill { background: linear-gradient(90deg, #409EFF, #79BBFF); }
+.hybrid-fill { background: linear-gradient(90deg, #67C23A, #95D475); }
+.mode-bar-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+  min-width: 40px;
+  text-align: right;
+}
+.empty-hint-small {
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+  padding: 16px 0;
 }
 </style>

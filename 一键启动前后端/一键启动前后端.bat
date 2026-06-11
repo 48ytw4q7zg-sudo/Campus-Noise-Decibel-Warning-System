@@ -11,11 +11,11 @@ echo ============================================
 echo.
 
 REM ============================================
-REM 路径计算（bat 在 一键启动前后端/ 子目录内，项目根为上级目录）
+REM 路径计算（bat 在 "一键启动前后端" 子目录内，项目根为上级目录）
 REM ============================================
-set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%.."
-if "%PROJECT_ROOT:~-1%"=="\" set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
+pushd "%~dp0.."
+set "PROJECT_ROOT=%CD%"
+popd
 set "BACKEND_DIR=%PROJECT_ROOT%\backend"
 set "FRONTEND_DIR=%PROJECT_ROOT%\frontend"
 set "CCSWITCH_DIR=%PROJECT_ROOT%\ccswitch_service"
@@ -34,7 +34,7 @@ echo [INFO] 项目根目录: %PROJECT_ROOT%
 
 if not exist "%BACKEND_DIR%" (
     echo [ERROR] 后端目录不存在: %BACKEND_DIR%
-    echo 请确认 bat 文件放在 一键启动前后端 文件夹内
+    echo 请确认 bat 文件放在 "一键启动前后端" 文件夹内
     echo 且项目目录结构完整（backend\）
     goto :fail
 )
@@ -100,7 +100,7 @@ if errorlevel 1 (
         echo [ERROR] pnpm 安装失败，请手动执行: npm install -g pnpm@10
         set /A MISSING+=1
     ) else (
-        echo [OK] pnpm ^(已自动安装^)
+        echo [OK] pnpm（已自动安装）
     )
 ) else (
     echo [OK] pnpm
@@ -154,10 +154,11 @@ if errorlevel 1 (
     echo [ERROR] 数据库连接失败！
     echo.
     echo 可能原因:
-    echo   1. MySQL 未安装或未启动 ^(服务名通常为 MySQL80 / MySQL84^)
-    echo   2. root 密码不是 %DB_PASS% ^(请修改 bat 文件中的 DB_PASS 变量^)
-    echo   3. MySQL 未加入 PATH ^(运行 mysql --version 验证^)
+    echo   1. MySQL 未安装或未启动（服务名通常为 MySQL80 / MySQL84）
+    echo   2. root 密码不是 %DB_PASS%（请修改 bat 文件中的 DB_PASS 变量）
+    echo   3. MySQL 未加入 PATH（运行 mysql --version 验证）
     echo.
+    echo 后续步骤需要数据库支持，无法继续
     goto :fail
 ) else (
     echo [OK] 数据库连接成功
@@ -167,7 +168,7 @@ if errorlevel 1 (
         if errorlevel 1 (
             echo [WARN] SQL 脚本执行有警告，可能表已存在
         ) else (
-            echo [OK] 数据表初始化完成 ^(6 张表 + 12 条阈值规则 + 4 个功能区^)
+            echo [OK] 数据表初始化完成（6 张表 + 12 条阈值规则 + 4 个功能区）
         )
     ) else (
         echo [WARN] SQL 文件不存在: %SQL_FILE%
@@ -177,10 +178,10 @@ if errorlevel 1 (
 echo.
 
 REM ============================================
-REM ccswitch 配置服务 ^(P2 可选^)
+REM ccswitch 配置服务（P2 可选）
 REM ============================================
 echo ============================================
-echo  ccswitch 配置服务 ^(Port %CCSWITCH_PORT%^)
+echo  ccswitch 配置服务（Port %CCSWITCH_PORT%）
 echo ============================================
 echo.
 
@@ -202,8 +203,9 @@ if "%CCSWITCH_SKIP%"=="1" (
         echo [INFO] 清理端口 %CCSWITCH_PORT% 上的进程 %%p
         taskkill /F /PID %%p >nul 2>&1
     )
+    timeout /t 1 /nobreak >nul
 
-    start "Noise Ccswitch" cmd /c "cd /d %CCSWITCH_DIR% && python app.py"
+    start "Noise Ccswitch" cmd /k "cd /d %CCSWITCH_DIR% && python app.py"
     echo [OK] ccswitch 配置服务已启动
 )
 echo.
@@ -220,7 +222,7 @@ cd /d "%BACKEND_DIR%"
 if exist target\classes (
     echo [OK] 已编译，跳过 Maven compile
 ) else (
-    echo 正在编译 SpringBoot 后端 ^(首次需 2-5 分钟^)...
+    echo 正在编译 SpringBoot 后端（首次需 2-5 分钟）...
     call %MVN_CMD% clean compile -DskipTests > "%PROJECT_ROOT%\logs\backend-compile.log" 2>&1
     if errorlevel 1 (
         echo [ERROR] 编译失败，日志: logs\backend-compile.log
@@ -236,7 +238,7 @@ REM ============================================
 REM 启动后端
 REM ============================================
 echo ============================================
-echo  启动后端服务 ^(端口 %BACKEND_PORT%^)
+echo  启动后端服务（端口 %BACKEND_PORT%）
 echo ============================================
 echo.
 
@@ -257,31 +259,32 @@ timeout /t 10 /nobreak >nul
 set "BACKEND_OK=0"
 for /l %%i in (1,1,36) do (
     curl -s http://localhost:%BACKEND_PORT%/api/auth/login -X POST -H "Content-Type: application/json" -d "{\"username\":\"_\",\"password\":\"_\"}" >nul 2>&1
-    REM curl 返回无论成功与否（包括 4xx/5xx），只要能连上就说明服务已启动
-    set "BACKEND_OK=1"
-    goto :backend_on
+    if not errorlevel 1 (
+        set "BACKEND_OK=1"
+        goto :backend_on
+    )
+    timeout /t 5 /nobreak >nul
+    echo   等待中... %%i/36
 )
-if !BACKEND_OK!==0 (
-    echo [ERROR] 后端启动超时，请检查 "Noise Backend" 窗口
-    goto :fail
-)
+echo [ERROR] 后端启动超时，请检查 "Noise Backend" 窗口
+goto :fail
 
 :backend_on
-echo [OK] 后端已启动 ^(http://localhost:%BACKEND_PORT%^)
+echo [OK] 后端已启动（http://localhost:%BACKEND_PORT%）
 echo.
 
 REM ============================================
 REM 启动前端
 REM ============================================
 echo ============================================
-echo  启动前端服务 ^(端口 %FRONTEND_PORT%^)
+echo  启动前端服务（端口 %FRONTEND_PORT%）
 echo ============================================
 echo.
 
 cd /d "%FRONTEND_DIR%"
 
 if not exist node_modules (
-    echo 安装前端依赖 ^(首次需 1-3 分钟^)...
+    echo 安装前端依赖（首次需 1-3 分钟）...
     call pnpm install > "%PROJECT_ROOT%\logs\frontend-install.log" 2>&1
     if errorlevel 1 (
         echo [ERROR] 依赖安装失败，日志: logs\frontend-install.log
@@ -318,7 +321,7 @@ echo [ERROR] 前端启动超时，请检查 "Noise Frontend" 窗口
 goto :fail
 
 :frontend_on
-echo [OK] 前端已启动 ^(http://localhost:%FRONTEND_PORT%^)
+echo [OK] 前端已启动（http://localhost:%FRONTEND_PORT%）
 echo.
 
 REM ============================================
@@ -331,23 +334,13 @@ echo ============================================
 echo  校园噪音分贝预警员系统 — 启动完成！
 echo ============================================
 echo.
-echo  前端页面: http://localhost:%FRONTEND_PORT%
-echo  后端 API:  http://localhost:%BACKEND_PORT%
-echo  ccswitch:  http://localhost:%CCSWITCH_PORT% ^(若已启动^)
+echo 后端: http://localhost:%BACKEND_PORT%
+echo 前端: http://localhost:%FRONTEND_PORT%
 echo.
-echo  使用说明:
-echo    1. 首次使用请先注册账号 ^(支持 普通用户 / 管理员^)
-echo    2. 系统每 5 分钟自动生成模拟噪声数据
-echo    3. 仪表盘每 10 秒自动刷新
-echo    4. 管理员可管理功能区、阈值规则、告警处置、数据导入导出
+echo 测试账号:
+echo   管理员: admin / admin123
 echo.
-echo  默认配置:
-echo    数据库: MySQL 8.4 ^(noise_db, root/root^)
-echo    JWT 过期: 2 小时
-echo    ccswitch 模型: deepseek-v4-pro ^(127.0.0.1:15721^)
-echo.
-echo  关闭此窗口不影响已启动的服务
-echo  各服务窗口关闭后对应服务停止
+echo 关闭此窗口不影响已启动的服务
 echo.
 pause
 exit /b 0
@@ -359,10 +352,10 @@ echo  启动失败，请检查上方错误信息
 echo ============================================
 echo.
 echo  常见问题:
-echo   1. MySQL 未启动 → 启动 MySQL84 服务
-echo   2. 端口被占用 → 关闭占用程序后重试
-echo   3. 依赖缺失 → 按提示安装 JDK/Node.js/pnpm/Maven
-echo   4. 数据库密码错误 → 修改 bat 中 DB_PASS 变量
+echo   1. MySQL 未启动 - 启动 MySQL84 服务
+echo   2. 端口被占用 - 关闭占用程序后重试
+echo   3. 依赖缺失 - 按提示安装 JDK/Node.js/pnpm/Maven
+echo   4. 数据库密码错误 - 修改 bat 中 DB_PASS 变量
 echo.
 pause
 exit /b 1

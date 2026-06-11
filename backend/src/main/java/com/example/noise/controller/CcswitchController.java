@@ -25,10 +25,9 @@ public class CcswitchController {
     this.ccswitchService = ccswitchService;
   }
 
-  /** 查询 ccswitch 配置服务状态（仅管理员） */
+  /** 查询 ccswitch 配置服务状态（所有已登录用户可查，仅管理员触发重载） */
   @GetMapping("/api/ccswitch/status")
-  public Result<Map<String, Object>> getStatus(HttpServletRequest request) {
-    checkAdmin(request);
+  public Result<Map<String, Object>> getStatus() {
     Map<String, Object> status = ccswitchService.getStatus();
     return Result.success(status);
   }

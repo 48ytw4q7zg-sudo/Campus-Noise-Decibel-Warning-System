@@ -47,10 +47,10 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     // 时间范围筛选
     if (dateFrom != null && !dateFrom.isEmpty()) {
-      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom));
+      wrapper.ge(NoiseRecord::getTimePoint, safeParseDateTime(dateFrom, true));
     }
     if (dateTo != null && !dateTo.isEmpty()) {
-      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo));
+      wrapper.le(NoiseRecord::getTimePoint, safeParseDateTime(dateTo, false));
     }
 
     wrapper.orderByAsc(NoiseRecord::getTimePoint);
@@ -138,17 +138,73 @@ public class StatisticsServiceImpl implements StatisticsService {
 
   @Override
   public Map<String, Object> getModelPerformance() {
-    // P1 阶段返回固定实验数据（研究报告 §4 实验结果）
+    // 基于 noise_record 表 judged_by_model 字段实时统计各模型性能
+    List<NoiseRecord> allJudged = noiseRecordMapper.selectList(
+        new LambdaQueryWrapper<NoiseRecord>().isNotNull(NoiseRecord::getIsAbnormal));
     List<Map<String, Object>> models = new ArrayList<>();
 
-    models.add(buildModel("固定阈值", 78.0, 65.0, 70.0, 67.4, 13.5));
-    models.add(buildModel("业务规则", 88.7, 85.2, 87.3, 86.2, 5.3));
-    models.add(buildModel("统计自适应", 89.4, 86.1, 88.2, 87.1, 8.2));
-    models.add(buildModel("混合阈值", 92.6, 90.8, 91.7, 91.2, 4.0));
+    // 按 judged_by_model 分组统计
+    Map<String, List<NoiseRecord>> byModel = new HashMap<>();
+    for (NoiseRecord r : allJudged) {
+      String model = r.getJudgedByModel() != null ? r.getJudgedByModel() : "UNKNOWN";
+      byModel.computeIfAbsent(model, k -> new ArrayList<>()).add(r);
+    }
+
+    // 转换 judged_by_model → 显示名
+    Map<String, String> modelLabels = Map.of(
+        "RULE_BASED", "业务规则",
+        "STAT_ADAPTIVE", "统计自适应",
+        "HYBRID", "混合阈值"
+    );
+
+    // 为每个模型计算性能指标（有 noise_type 标注的才参与计算）
+    for (Map.Entry<String, List<NoiseRecord>> entry : byModel.entrySet()) {
+      String modelKey = entry.getKey();
+      List<NoiseRecord> records = entry.getValue();
+
+      long tp = 0, fp = 0, tn = 0, fn = 0;
+      for (NoiseRecord r : records) {
+        boolean predictedAbnormal = r.getIsAbnormal() != null && r.getIsAbnormal() == 1;
+        boolean actualAbnormal = "异常".equals(r.getNoiseType());
+        if (predictedAbnormal && actualAbnormal) tp++;
+        else if (predictedAbnormal && !actualAbnormal) fp++;
+        else if (!predictedAbnormal && !actualAbnormal) tn++;
+        else if (!predictedAbnormal && actualAbnormal) fn++;
+      }
+      long total = tp + fp + tn + fn;
+
+      String label = modelLabels.getOrDefault(modelKey, modelKey);
+      if (total > 0) {
+        models.add(buildModel(label,
+            round2((double) (tp + tn) / total * 100),
+            round2((tp + fp) > 0 ? (double) tp / (tp + fp) * 100 : 0),
+            round2((tp + fn) > 0 ? (double) tp / (tp + fn) * 100 : 0),
+            round2(calcF1(tp, fp, fn)),
+            round2((fp + tn) > 0 ? (double) fp / (fp + tn) * 100 : 0)));
+      }
+    }
+
+    // 如果无标注数据，回退研究报告 §4 基准值
+    if (models.isEmpty()) {
+      models.add(buildModel("固定阈值", 78.0, 65.0, 70.0, 67.4, 13.5));
+      models.add(buildModel("业务规则", 88.7, 85.2, 87.3, 86.2, 5.3));
+      models.add(buildModel("统计自适应", 89.4, 86.1, 88.2, 87.1, 8.2));
+      models.add(buildModel("混合阈值", 92.6, 90.8, 91.7, 91.2, 4.0));
+    }
 
     Map<String, Object> result = new HashMap<>();
     result.put("models", models);
     return result;
+  }
+
+  private double calcF1(long tp, long fp, long fn) {
+    double precision = (tp + fp) > 0 ? (double) tp / (tp + fp) : 0;
+    double recall = (tp + fn) > 0 ? (double) tp / (tp + fn) : 0;
+    return (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) * 100 : 0;
+  }
+
+  private double round2(double v) {
+    return Math.round(v * 10.0) / 10.0;
   }
 
   /** 组装单个模型指标 Map */
@@ -399,5 +455,18 @@ public class StatisticsServiceImpl implements StatisticsService {
       if (array[i].equals(value)) return i;
     }
     return -1;
+  }
+
+  /** 安全解析日期时间字符串：兼容 "yyyy-MM-dd" 和 "yyyy-MM-ddTHH:mm:ss" 两种格式 */
+  private LocalDateTime safeParseDateTime(String dateStr, boolean isStart) {
+    if (dateStr == null || dateStr.isEmpty()) return null;
+    try {
+      return LocalDateTime.parse(dateStr);
+    } catch (Exception e) {
+      // 尝试补全为 LocalDateTime
+      return isStart
+          ? LocalDateTime.of(java.time.LocalDate.parse(dateStr), java.time.LocalTime.MIN)
+          : LocalDateTime.of(java.time.LocalDate.parse(dateStr), java.time.LocalTime.MAX);
+    }
   }
 }

@@ -230,10 +230,10 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
 
     // 时间范围筛选
     if (dateFrom != null && !dateFrom.isEmpty()) {
-      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom));
+      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom.contains("T") ? dateFrom : dateFrom + "T00:00:00"));
     }
     if (dateTo != null && !dateTo.isEmpty()) {
-      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo));
+      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo.contains("T") ? dateTo : dateTo + "T23:59:59"));
     }
 
     // 异常状态筛选
@@ -295,10 +295,10 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
 
     // 时间范围筛选
     if (dateFrom != null && !dateFrom.isEmpty()) {
-      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom));
+      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom.contains("T") ? dateFrom : dateFrom + "T00:00:00"));
     }
     if (dateTo != null && !dateTo.isEmpty()) {
-      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo));
+      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo.contains("T") ? dateTo : dateTo + "T23:59:59"));
     }
 
     // 异常状态筛选
@@ -337,10 +337,10 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
 
     // 时间范围筛选
     if (dateFrom != null && !dateFrom.isEmpty()) {
-      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom));
+      wrapper.ge(NoiseRecord::getTimePoint, LocalDateTime.parse(dateFrom.contains("T") ? dateFrom : dateFrom + "T00:00:00"));
     }
     if (dateTo != null && !dateTo.isEmpty()) {
-      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo));
+      wrapper.le(NoiseRecord::getTimePoint, LocalDateTime.parse(dateTo.contains("T") ? dateTo : dateTo + "T23:59:59"));
     }
 
     // 异常状态筛选

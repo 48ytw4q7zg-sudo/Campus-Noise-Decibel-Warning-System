@@ -38,6 +38,26 @@ request.interceptors.response.use(
     }
   },
   (error) => {
+    if (error.response) {
+      const status = error.response.status
+      if (status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userId')
+        localStorage.removeItem('username')
+        localStorage.removeItem('role')
+        router.push('/login')
+        ElMessage.error('登录已过期，请重新登录')
+        return Promise.reject(error)
+      }
+      if (status === 403) {
+        ElMessage.error('无权限访问')
+        return Promise.reject(error)
+      }
+      if (status >= 500) {
+        ElMessage.error('服务器内部错误，请稍后重试')
+        return Promise.reject(error)
+      }
+    }
     ElMessage.error('网络异常，请稍后重试')
     return Promise.reject(error)
   }
