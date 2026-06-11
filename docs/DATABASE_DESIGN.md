@@ -78,7 +78,7 @@
 | 2 | username | VARCHAR(20) | NOT NULL | — | **UQ** | 用户名，登录凭证 |
 | 3 | password | VARCHAR(255) | NOT NULL | — | — | BCrypt 密文 |
 <!-- R-03-issue-1: 已修复 - 教学简化省略邮箱/手机字段，注册仅需用户名+密码，无需联系方式 -->
-| 4 | role | VARCHAR(10) | NOT NULL | '普通用户' | — | 普通用户 / 管理员，应用层校验 |
+| 4 | role | VARCHAR(10) | NOT NULL | — | 普通用户 / 管理员，INSERT必填，应用层校验 |
 | 5 | status | TINYINT | NOT NULL | 1 | — | 1=正常, 0=禁用（P0 仅正常） |
 | 6 | create_time | DATETIME | NOT NULL | CURRENT_TIMESTAMP | — | 注册时间 |
 | 7 | update_time | DATETIME | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | — | 修改时间 |
@@ -146,7 +146,7 @@
 | 4 | decibel | DECIMAL(5,1) | NOT NULL | — | 反范式：查询加速冗余，源字段 noise_record.decibel |
 | 5 | threshold_value | INT | NOT NULL | — | 触发时阈值 dB(A) |
 | 6 | alert_type | VARCHAR(10) | NOT NULL | — | 超阈值/骤升(≥15dB)/夜间异常 |
-| 7 | confirm_status | VARCHAR(10) | NOT NULL | '未确认' | 未确认→已确认→已处置 |
+| 7 | confirm_status | VARCHAR(10) | NOT NULL | — | 未确认→已确认→已处置，INSERT必填 |
 | 8 | confirmed_by | BIGINT | NULL | FK→user.id | 确认人，NULL=未确认（未确认时不关联用户） |
 | 9 | remark | VARCHAR(500) | NULL | NULL | 处理备注 |
 | 10 | version | INT | NOT NULL | 0 | 乐观锁 |
@@ -193,7 +193,7 @@
 | 3 | period_start | DATETIME | NOT NULL | — | 统计起始 |
 | 4 | period_end | DATETIME | NOT NULL | — | 统计截止 |
 | 5 | content | TEXT | NOT NULL | — | Markdown/HTML |
-| 6 | status | VARCHAR(10) | NOT NULL | '生成中' | 生成中/已生成/生成失败 |
+| 6 | status | VARCHAR(10) | NOT NULL | — | 生成中/已生成/生成失败，INSERT必填 |
 | 7 | create_time | DATETIME | NOT NULL | CURRENT_TIMESTAMP | 生成时间 |
 | 8 | update_time | DATETIME | NOT NULL | CURRENT_TIMESTAMP ON UPDATE | 修改时间 |
 
