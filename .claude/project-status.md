@@ -18,7 +18,7 @@
 - **当前 Phase**:Phase 0 (项目初始化 · 标定卡已制作 · 待 /init-skeleton)
 - **上次更新**:2026-06-11
 - **已完成文档**:PRD.md, TECH_DESIGN.md
-- **数据库表**:无
+- **数据库表**:user, noise_record, threshold_rule, alert_log, area_config, report
 - **已有接口**:无
 - **已完成的后端模块**:无
 - **已完成的前端页面**:无
