@@ -20,7 +20,7 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 jwt:
-  secret: campus-noise-warning-system-jwt-secret-key-2026
+  secret: ${JWT_SECRET:campus-noise-warning-system-jwt-secret-key-2026}
   expiration: 7200
 
 ccswitch:

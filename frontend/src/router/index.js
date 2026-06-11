@@ -1,24 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginPage from '@/views/LoginPage.vue'
-import AppLayout from '@/components/AppLayout.vue'
-import DashboardPage from '@/views/DashboardPage.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: LoginPage,
+    component: () => import('@/views/LoginPage.vue'),
     meta: { requiresAuth: false }
   },
   {
     path: '/',
-    component: AppLayout,
+    component: () => import('@/components/AppLayout.vue'),
     meta: { requiresAuth: true },
     children: [
       {
         path: '',
         name: 'Dashboard',
-        component: DashboardPage
+        component: () => import('@/views/DashboardPage.vue')
       },
       {
         path: 'noise-monitor',

@@ -24,6 +24,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 报告生成 Service 实现 — P2-3 定时报告生成
@@ -44,6 +45,9 @@ public class ReportServiceImpl implements ReportService {
   private final NoiseRecordMapper noiseRecordMapper;
   private final ThresholdRuleMapper thresholdRuleMapper;
   private final AreaConfigMapper areaConfigMapper;
+
+  /** TOCTOU 防护：按生成键（周期+起止时间）串行化 */
+  private final ConcurrentHashMap<String, Object> generateLocks = new ConcurrentHashMap<>();
 
   public ReportServiceImpl(ReportMapper reportMapper,
                            NoiseRecordMapper noiseRecordMapper,
@@ -77,15 +81,29 @@ public class ReportServiceImpl implements ReportService {
     String startParam = periodStart != null ? periodStart.replace('T', ' ') : null;
     String endParam = periodEnd != null ? periodEnd.replace('T', ' ') : null;
 
-    // 幂等检查：同周期 + 同起止时间不可重复生成
-    LambdaQueryWrapper<Report> checkWrapper = new LambdaQueryWrapper<>();
-    checkWrapper.eq(Report::getReportPeriod, reportPeriod)
-                 .eq(Report::getPeriodStart, LocalDateTime.parse(startParam, DTF))
-                 .eq(Report::getPeriodEnd, LocalDateTime.parse(endParam, DTF));
-    Long existingCount = reportMapper.selectCount(checkWrapper);
-    if (existingCount > 0) {
-      throw new BusinessException(8002, "同周期已有报告，不可重复生成");
+    // TOCTOU 防护：同键串行化
+    String lockKey = reportPeriod + "|" + startParam + "|" + endParam;
+    synchronized (generateLocks.computeIfAbsent(lockKey, k -> new Object())) {
+      try {
+        LambdaQueryWrapper<Report> checkWrapper = new LambdaQueryWrapper<>();
+        checkWrapper.eq(Report::getReportPeriod, reportPeriod)
+                     .eq(Report::getPeriodStart, LocalDateTime.parse(startParam, DTF))
+                     .eq(Report::getPeriodEnd, LocalDateTime.parse(endParam, DTF));
+        Long existingCount = reportMapper.selectCount(checkWrapper);
+        if (existingCount > 0) {
+          throw new BusinessException(8002, "同周期已有报告，不可重复生成");
+        }
+
+        return doGenerate(reportPeriod, periodStart, periodEnd, startParam, endParam);
+      } finally {
+        generateLocks.remove(lockKey);
+      }
     }
+  }
+
+  /** 实际生成逻辑（已持有锁） */
+  private Report doGenerate(String reportPeriod, String periodStart, String periodEnd,
+                             String startParam, String endParam) {
 
     // 聚合噪声数据：全局汇总 + 按功能区分组
     Map<String, Object> globalSummary = noiseRecordMapper.selectGlobalSummary(startParam, endParam);

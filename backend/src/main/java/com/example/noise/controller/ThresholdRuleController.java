@@ -3,8 +3,11 @@ package com.example.noise.controller;
 import com.example.noise.common.BusinessException;
 import com.example.noise.common.Result;
 import com.example.noise.entity.ThresholdRule;
+import com.example.noise.entity.dto.CreateThresholdRuleRequest;
+import com.example.noise.entity.dto.UpdateThresholdRuleRequest;
 import com.example.noise.service.ThresholdService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,41 +46,28 @@ public class ThresholdRuleController {
   /**
    * 新增阈值规则（仅管理员）
    * POST /api/thresholds/rules
-   * Body: { location, timeSegment, thresholdValue, description }
    */
   @PostMapping("/api/thresholds/rules")
-  public Result<ThresholdRule> createRule(@RequestBody Map<String, Object> body,
+  public Result<ThresholdRule> createRule(@Valid @RequestBody CreateThresholdRuleRequest body,
                                           HttpServletRequest request) {
     checkAdmin(request);
-    String location = (String) body.get("location");
-    String timeSegment = (String) body.get("timeSegment");
-    Integer thresholdValue = body.get("thresholdValue") != null
-        ? ((Number) body.get("thresholdValue")).intValue() : null;
-    String description = (String) body.get("description");
-
-    ThresholdRule rule = thresholdService.createRule(location, timeSegment, thresholdValue, description);
+    ThresholdRule rule = thresholdService.createRule(
+        body.getLocation(), body.getTimeSegment(),
+        body.getThresholdValue(), body.getDescription());
     return Result.success(rule, "阈值规则新增成功");
   }
 
   /**
    * 修改阈值规则（仅管理员，乐观锁）
    * PUT /api/thresholds/rules/{id}
-   * Body: { thresholdValue, description, status, version }
    */
   @PutMapping("/api/thresholds/rules/{id}")
   public Result<Void> updateRule(@PathVariable Long id,
-                                  @RequestBody Map<String, Object> body,
+                                  @Valid @RequestBody UpdateThresholdRuleRequest body,
                                   HttpServletRequest request) {
     checkAdmin(request);
-    Integer thresholdValue = body.get("thresholdValue") != null
-        ? ((Number) body.get("thresholdValue")).intValue() : null;
-    String description = (String) body.get("description");
-    Integer status = body.get("status") != null
-        ? ((Number) body.get("status")).intValue() : null;
-    Integer version = body.get("version") != null
-        ? ((Number) body.get("version")).intValue() : null;
-
-    thresholdService.updateRule(id, thresholdValue, description, status, version);
+    thresholdService.updateRule(id, body.getThresholdValue(),
+        body.getDescription(), body.getStatus(), body.getVersion());
     return Result.success(null, "阈值规则更新成功");
   }
 
