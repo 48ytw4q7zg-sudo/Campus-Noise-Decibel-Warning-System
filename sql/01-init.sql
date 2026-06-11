@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS noise_record (
     create_time      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '入库时间',
     update_time      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
     PRIMARY KEY (id),
-    INDEX idx_nr_location (location)        COMMENT '高频查询加速索引（仪表盘按功能区查最新数据）',
+    -- 高频查询加速索引（仪表盘按功能区查最新数据），虽被联合索引最左前缀覆盖但保留
+    INDEX idx_nr_location (location),
     INDEX idx_nr_time_point (time_point),
     INDEX idx_nr_location_time (location, time_point),
     INDEX idx_nr_is_abnormal (is_abnormal),
@@ -87,10 +88,12 @@ CREATE TABLE IF NOT EXISTS alert_log (
     INDEX idx_al_location (location),
     INDEX idx_al_create_time (create_time),
     INDEX idx_al_confirm_status (confirm_status),
+    -- 防御性设计：noise_record为append-only不删除，RESTRICT防DBA误操作
     CONSTRAINT fk_alert_noise FOREIGN KEY (noise_record_id) REFERENCES noise_record(id)
-        ON DELETE RESTRICT  COMMENT '防御性设计：noise_record为append-only不删除，此约束防DBA误操作',
+        ON DELETE RESTRICT,
+    -- 用户注销后告警记录保留，confirmed_by=NULL表示确认人已不存在
     CONSTRAINT fk_alert_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES user(id)
-        ON DELETE SET NULL  COMMENT '用户注销后告警记录保留，confirmed_by=NULL表示确认人已不存在'
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警日志表';
 
 -- ============================================================
@@ -125,8 +128,9 @@ CREATE TABLE IF NOT EXISTS report (
     create_time   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '生成时间',
     update_time   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后修改时间',
     PRIMARY KEY (id),
+    -- 支持报告列表按生成时间倒序查询
     INDEX idx_report_period (report_period),
-    INDEX idx_report_period_start (period_start)   COMMENT '支持报告列表按生成时间倒序查询'
+    INDEX idx_report_period_start (period_start)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报告表（P2）';
 
 -- ============================================================
