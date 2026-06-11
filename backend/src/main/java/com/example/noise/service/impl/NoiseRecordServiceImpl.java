@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.example.noise.common.BusinessException;
+import com.example.noise.entity.AreaConfig;
 import com.example.noise.entity.NoiseRecord;
+import com.example.noise.entity.ThresholdRule;
 import com.example.noise.entity.dto.NoiseRecordBatchDTO;
 import com.example.noise.entity.dto.NoiseRecordRequest;
 import com.example.noise.entity.dto.NoiseLatestVO;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,11 +33,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class NoiseRecordServiceImpl implements NoiseRecordService {
 
-  /** 合法的四大功能区 */
+  /** 合法的四大功能区（单一权威源） */
   private static final Set<String> VALID_LOCATIONS = Set.of("图书馆", "食堂", "操场", "宿舍");
 
-  /** 四大功能区列表（getLatestPerArea / 模拟器 遍历顺序） */
-  private static final List<String> AREAS = List.of("图书馆", "食堂", "操场", "宿舍");
+  /** 四大功能区列表（getLatestPerArea / 模拟器 遍历顺序 · R-07-BE-4: 源于 VALID_LOCATIONS） */
+  private static final List<String> AREAS = new ArrayList<>(VALID_LOCATIONS);
 
   /** 分贝值下限 */
   private static final double DECIBEL_MIN = 20.0;
@@ -139,34 +142,69 @@ public class NoiseRecordServiceImpl implements NoiseRecordService {
   public List<NoiseLatestVO> getLatestPerArea() {
     List<NoiseLatestVO> result = new ArrayList<>(AREAS.size());
 
-    for (String area : AREAS) {
-      LambdaQueryWrapper<NoiseRecord> wrapper = new LambdaQueryWrapper<>();
-      wrapper.eq(NoiseRecord::getLocation, area)
-             .orderByDesc(NoiseRecord::getTimePoint)
-             .last("LIMIT 1");
-      NoiseRecord record = noiseRecordMapper.selectOne(wrapper);
+    // 批量查所有功能区的最新一条噪声记录（一条 SQL）
+    List<NoiseRecord> latestRecords = noiseRecordMapper.selectLatestPerArea();
+    Map<String, NoiseRecord> latestMap = new HashMap<>();
+    for (NoiseRecord r : latestRecords) {
+      latestMap.put(r.getLocation(), r);
+    }
 
+    // 批量预加载阈值规则，避免 N+1 查询
+    LambdaQueryWrapper<ThresholdRule> ruleWrapper = new LambdaQueryWrapper<>();
+    ruleWrapper.eq(ThresholdRule::getStatus, 1);
+    List<ThresholdRule> allRules = noiseRecordMapper.selectThresholdRulesBatch();
+    // 构造 (location, timeSegment) → thresholdValue 快速查找表
+    String currentSegment = getCurrentTimeSegmentForThreshold();
+    Map<String, Integer> thresholdMap = new HashMap<>();
+    for (ThresholdRule rule : allRules) {
+      if (currentSegment.equals(rule.getTimeSegment())) {
+        thresholdMap.put(rule.getLocation(), rule.getThresholdValue());
+      }
+    }
+
+    // 批量预加载 area_config 默认阈值兜底
+    LambdaQueryWrapper<AreaConfig> areaWrapper = new LambdaQueryWrapper<>();
+    List<AreaConfig> allAreas = noiseRecordMapper.selectAreaConfigsBatch();
+    Map<String, Integer> areaDefaultMap = new HashMap<>();
+    for (AreaConfig ac : allAreas) {
+      if (ac.getDefaultThreshold() != null) {
+        areaDefaultMap.put(ac.getAreaName(), ac.getDefaultThreshold());
+      }
+    }
+
+    for (String area : AREAS) {
+      NoiseRecord record = latestMap.get(area);
       if (record != null) {
         NoiseLatestVO vo = new NoiseLatestVO();
         vo.setId(record.getId());
         vo.setLocation(record.getLocation());
         vo.setDecibel(record.getDecibel());
         vo.setTimePoint(record.getTimePoint());
-        // 查询当前功能区对应时段的阈值
-        try {
-          vo.setThresholdValue(thresholdService.getCurrentThreshold(area).getThresholdValue());
-        } catch (Exception e) {
-          vo.setThresholdValue(55); // 兜底全局默认值
+        // 三级兜底：threshold_rule → area_config.default → 55
+        Integer tv = thresholdMap.get(area);
+        if (tv == null) {
+          tv = areaDefaultMap.getOrDefault(area, 55);
         }
+        vo.setThresholdValue(tv);
         vo.setIsAbnormal(record.getIsAbnormal());
         result.add(vo);
       } else {
-        // 该功能区无数据，对应位置为 null
         result.add(null);
       }
     }
 
     return result;
+  }
+
+  /** 获取当前时段标签用于阈值匹配 */
+  private String getCurrentTimeSegmentForThreshold() {
+    LocalTime now = LocalTime.now();
+    if (!now.isBefore(LocalTime.of(7, 30)) && now.isBefore(LocalTime.of(8, 0))) return "早读";
+    if (!now.isBefore(LocalTime.of(8, 0)) && now.isBefore(LocalTime.of(12, 0))) return "上课";
+    if (!now.isBefore(LocalTime.of(12, 0)) && now.isBefore(LocalTime.of(14, 0))) return "午休";
+    if (!now.isBefore(LocalTime.of(14, 0)) && now.isBefore(LocalTime.of(18, 0))) return "上课";
+    if (!now.isBefore(LocalTime.of(18, 0)) && now.isBefore(LocalTime.of(22, 0))) return "活动/晚自修";
+    return "夜间静校";
   }
 
   @Override

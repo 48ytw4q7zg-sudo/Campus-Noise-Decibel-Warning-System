@@ -49,10 +49,15 @@
       "Bash(taskkill.exe /F /IM java.exe)",
       "Bash(mkdir -p \"/c/Users/Administrator/Desktop/Question-12---Personal-Financial-Accounting-and-Analysis-System-main/logs\")",
       "Bash(pwd -W)",
-      "Bash(cmd.exe /c \"cd /d \\\\\"$\\(pwd -W || pwd\\)\\\\system\\\\backend\\\\\" && mvn.cmd -B -DskipTests compile\")"
+      "Bash(cmd.exe /c \"cd /d \\\\\"$\\(pwd -W || pwd\\)\\\\system\\\\backend\\\\\" && mvn.cmd -B -DskipTests compile\")",
+      "Bash(mvn compile *)",
+      "Bash(mvn test *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app.py', doraise=True\\); print\\('OK'\\)\")"
     ],
     "defaultMode": "acceptEdits"
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "repowise"
   ],
@@ -92,6 +97,5 @@
       "Bash(git pull gitee2 *)",
       "Bash(git pull origin *)"
     ]
-  },
-  "enableAllProjectMcpServers": true
+  }
 }

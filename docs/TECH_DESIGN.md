@@ -78,7 +78,7 @@ ccswitch 配置服务是一个独立的 Python Flask 微服务（Port 5000），
 | 模式 | 说明 | 启动方式 |
 |------|------|---------|
 | 嵌入式 | Flask 服务集成在主项目 `ccswitch_service/` 目录下 | `python app.py`（独立启动） |
-| 参考式 | 参考 ocsjs-ai-answer-service 的完整实现模式 | 见 `C:\Users\Administrator\Downloads\ocsjs-ai-answer-service\` |
+| 参考式 | 参考 ocsjs-ai-answer-service 的完整实现模式 | 见 `ccswitch_service/app.py` 实现 |
 
 **核心模块**（`ccswitch_service/` 目录）：
 
@@ -89,7 +89,7 @@ ccswitch 配置服务是一个独立的 Python Flask 微服务（Port 5000），
 | 配置管理 | `config.py` | 优先 ccswitch、回退 `.env`，运行时热重载 |
 | 阈值规则存储 | `threshold_rules.json` | 动态阈值规则持久化配置（JSON 文件） |
 
-**ccswitch.py 核心能力**（对齐参考实现 `C:\Users\Administrator\Downloads\ocsjs-ai-answer-service\ccswitch.py`）：
+**ccswitch.py 核心能力**（对齐参考实现 ocsjs-ai-answer-service/ccswitch.py）：
 
 1. **配置源发现**：自动查找 `~/.claude/settings.json` → 回退 `settings.local.json`
 2. **双模式支持**：ccswitch 本地代理（127.0.0.1:15721）和直连 API（如 api.deepseek.com）

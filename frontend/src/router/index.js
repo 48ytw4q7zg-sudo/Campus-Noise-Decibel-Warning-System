@@ -63,12 +63,21 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !localStorage.getItem('token')) {
+  const token = localStorage.getItem('token')
+
+  // 已登录用户访问 /login → 跳首页
+  if (to.path === '/login' && token) {
+    return next({ path: '/' })
+  }
+
+  // 需登录的页面但无 token → 跳登录
+  if (to.meta.requiresAuth && !token) {
     return next({ path: '/login', query: { redirect: to.fullPath } })
   }
-  // Admin-only route guard
+
+  // 管理员专属路由守卫
   if (to.meta.adminOnly) {
-    const role = localStorage.getItem('role');
+    const role = localStorage.getItem('role')
     if (role !== '管理员') {
       return next({ path: '/' })
     }

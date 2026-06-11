@@ -15,15 +15,15 @@
 
 ## 当前状态字段(9 个)
 
-- **当前 Phase**:Phase 4-5-6 (P0+P1+P2 全部完成 · 全栈联调10+模块25+接口通过 · 后端61源文件前端30+文件编译通过 · ccswitch SSE推送+文件监控集成)
+- **当前 Phase**:Phase 6-7-8 (全部 Phase 完成 · 后端61源文件前端30+文件编译通过 · 38个单元测试全部通过 · R-07+R-08三份审查报告已生成 · DEPLOY.md 8节完整 · ai-records 3篇提示词演化 · ccswitch SSE推送+文件监控集成)
 - **上次更新**:2026-06-11
-- **已完成文档**:PRD.md, TECH_DESIGN.md, DATABASE_DESIGN.md, API_DESIGN.md (R-00~R-04 全部闭环)
+- **已完成文档**:PRD.md, TECH_DESIGN.md, DATABASE_DESIGN.md, API_DESIGN.md, DEPLOY.md (R-00~R-08 全部闭环 · 9份对话记录)
 - **数据库表**:user, noise_record, threshold_rule, alert_log, area_config, report (全部6表+种子数据+12条预置阈值规则)
 - **已有接口**:25+ (P0: auth/* users/* noise/* thresholds/* alerts/* areas/* dashboard/*; P1: thresholds/rules CRUD+adaptive+hybrid, statistics/*, noise/search+export; P2: reports/*, ai/*, ccswitch/*, data/import+export-report, statistics/multi-dim+heatmap+radar)
 - **已完成的后端模块**:User, NoiseRecord(含导入导出+定时模拟), Threshold+ThresholdRule(CRUD+自适应+混合), AlertLog, AreaConfig, Dashboard, Statistics(含P2多维+热力图+雷达图), Report(含定时生成), Ai(规则分类), Ccswitch(Java集成) — P0+P1+P2 全覆盖
-- **已完成的前端页面**:LoginPage, DashboardPage, AppLayout(响应式<768px抽屉/768-991px折叠/992px+完整), NoiseMonitorPage(含导入导出), AlertHistoryPage, AreaConfigPage, ThresholdConfigPage(含自适应+混合模型Tab), StatisticsPage(含热力图+雷达图Tab), SystemSettingsPage(含ccswitch+AI+报告下载+数据管理) + 12个 api/*.js + stores/user.js
-- **Bug修复记录**:7 个 (alert_type字段长度/confirm_status中英文/功能区名称/lombok注解处理器/报告生成ISO8601格式兼容+null安全/CSV导入注释行跳过/乐观锁version不递增×2/仪表盘thresholdValue为null/AlertHistory确认remark丢失)
-- **测试**:全栈联调10次+ 验证通过 · 后端mvn compile BUILD SUCCESS · 前端pnpm dev启动200 OK
+- **已完成的前端页面**:LoginPage(图标组件修复), DashboardPage, AppLayout(响应式), NoiseMonitorPage, AlertHistoryPage, AreaConfigPage, ThresholdConfigPage, StatisticsPage, SystemSettingsPage(报告下载) + 12个 api/*.js(含Blob拦截器修复) + stores/user.js
+- **Bug修复记录**:10 个 (乐观锁version不递增×2/仪表盘thresholdValue为null/AlertHistory确认remark丢失/LoginPage图标不渲染/Blob导出被拦截器阻断/JWT秘钥硬编码/DB密码明文/MyBatis SQL日志泄露/CSV公式注入风险)
+- **测试**:Phase 6 单元测试38个全部通过(AlertLogServiceImplTest 14个 + ThresholdServiceImplTest 24个) · mvn test BUILD SUCCESS · 前端pnpm dev 200 OK
 
 ## 每 Phase 末该做的事
 

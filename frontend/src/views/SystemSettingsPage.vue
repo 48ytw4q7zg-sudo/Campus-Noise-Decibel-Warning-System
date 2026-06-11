@@ -29,6 +29,69 @@
         </div>
       </el-card>
 
+      <!-- 区域1b: ccswitch 实时阈值测试 -->
+      <el-card class="section-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span>ccswitch 实时阈值计算测试</span>
+            <el-tag :type="testResult ? (testResult.isAbnormal ? 'danger' : 'success') : 'info'" size="small">
+              {{ testResult ? (testResult.isAbnormal ? '异常' : '正常') : '待测试' }}
+            </el-tag>
+          </div>
+        </template>
+        <el-form :model="thresholdTestForm" inline>
+          <el-form-item label="功能区">
+            <el-select v-model="thresholdTestForm.location" style="width: 120px">
+              <el-option v-for="loc in ['图书馆','食堂','操场','宿舍']" :key="loc" :label="loc" :value="loc" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="当前分贝">
+            <el-input-number v-model="thresholdTestForm.decibel" :min="20" :max="120" :precision="1" style="width: 140px" />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :loading="thresholdTesting" @click="handleComputeThreshold">
+              测试计算
+            </el-button>
+          </el-form-item>
+        </el-form>
+        <!-- 结果展示 -->
+        <el-descriptions v-if="testResult" :column="3" border size="small" style="margin-top: 12px">
+          <el-descriptions-item label="规则阈值">{{ testResult.ruleBasedThreshold }} dB</el-descriptions-item>
+          <el-descriptions-item label="自适应上限">{{ testResult.adaptiveUpper }} dB</el-descriptions-item>
+          <el-descriptions-item label="自适应下限">{{ testResult.adaptiveLower }} dB</el-descriptions-item>
+          <el-descriptions-item label="是否异常">
+            <el-tag :type="testResult.isAbnormal ? 'danger' : 'success'" size="small">{{ testResult.isAbnormal ? '是' : '否' }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="混合模式">{{ testResult.hybridMode || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="触发原因">{{ testResult.triggerReason || '无' }}</el-descriptions-item>
+        </el-descriptions>
+      </el-card>
+
+      <!-- 区域1c: 自适应参数配置 -->
+      <el-card class="section-card" shadow="hover">
+        <template #header>
+          <span>自适应参数配置 (ccswitch)</span>
+        </template>
+        <el-table :data="areaConfigTable" border stripe size="small" style="width: 100%">
+          <el-table-column prop="location" label="功能区" width="100" align="center" />
+          <el-table-column label="窗口大小" width="160" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.windowSize" :min="5" :max="100" size="small" controls-position="right" />
+            </template>
+          </el-table-column>
+          <el-table-column label="K值(灵敏度)" width="160" align="center">
+            <template #default="{ row }">
+              <el-input-number v-model="row.kValue" :min="1.0" :max="5.0" :precision="1" :step="0.5" size="small" controls-position="right" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" align="center">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" link @click="handleSaveAreaConfig(row)">保存</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
       <!-- 区域2: AI 分类配置 -->
       <el-card class="section-card" shadow="hover">
         <template #header>
@@ -188,7 +251,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useUserStore } from '@/stores/user';
-import { getCcswitchStatus, reloadCcswitchConfig } from '@/api/ccswitch';
+import { getCcswitchStatus, reloadCcswitchConfig, computeThreshold, updateAreaAdaptiveConfig, getAreaAdaptiveConfig } from '@/api/ccswitch';
 import { classifyNoise, updateAiConfig } from '@/api/ai';
 import { queryReports, generateReport, downloadReport } from '@/api/report';
 import { importData, exportReport } from '@/api/import';
@@ -219,6 +282,77 @@ const handleCcswitchReload = async () => {
     // 拦截器已处理
   } finally {
     ccReloading.value = false;
+  }
+};
+
+// ===== ccswitch 实时阈值测试 =====
+const thresholdTestForm = reactive({ location: '图书馆', decibel: 50.0 });
+const thresholdTesting = ref(false);
+const testResult = ref(null);
+
+const handleComputeThreshold = async () => {
+  thresholdTesting.value = true;
+  testResult.value = null;
+  try {
+    const res = await computeThreshold({
+      location: thresholdTestForm.location,
+      decibel: thresholdTestForm.decibel,
+      decibelHistory: [45, 48, 52, 50, 47, 49, 51]
+    });
+    testResult.value = res.data || res;
+    ElMessage.success('阈值计算完成');
+  } catch (e) {
+    // 拦截器已处理
+  } finally {
+    thresholdTesting.value = false;
+  }
+};
+
+// ===== 自适应参数配置 =====
+const areaConfigTable = reactive([
+  { location: '图书馆', windowSize: 15, kValue: 2.0 },
+  { location: '食堂', windowSize: 10, kValue: 3.0 },
+  { location: '操场', windowSize: 10, kValue: 3.0 },
+  { location: '宿舍', windowSize: 15, kValue: 2.0 },
+]);
+
+
+
+const fetchAreaConfig = async () => {
+  try {
+    const res = await getAreaAdaptiveConfig();
+    const data = res.data || res;
+    if (data) {
+      Object.entries(data).forEach(([key, val]) => {
+        const row = areaConfigTable.find(r =>
+          r.location === key ||
+          (key === '图书馆' && r.location === '图书馆') ||
+          (key === '食堂' && r.location === '食堂') ||
+          (key === '操场' && r.location === '操场') ||
+          (key === '宿舍' && r.location === '宿舍')
+        );
+        if (row && val) {
+          row.windowSize = val.windowSize;
+          row.kValue = val.kValue;
+        }
+      });
+    }
+  } catch (e) {
+    // 静默处理
+  }
+};
+
+const handleSaveAreaConfig = async (row) => {
+  try {
+    const config = {};
+    areaConfigTable.forEach(r => {
+      
+      config[r.location] = { windowSize: r.windowSize, kValue: r.kValue };
+    });
+    const res = await updateAreaAdaptiveConfig(config);
+    ElMessage.success(res.message || '自适应参数已更新');
+  } catch (e) {
+    // 拦截器已处理
   }
 };
 
@@ -397,6 +531,7 @@ const formatTime = (t) => {
 onMounted(() => {
   if (isAdmin.value) {
     fetchCcswitchStatus();
+    fetchAreaConfig();
     fetchReports();
   }
 });

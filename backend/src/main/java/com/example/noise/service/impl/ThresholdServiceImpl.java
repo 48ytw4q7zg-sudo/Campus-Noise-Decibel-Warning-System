@@ -13,6 +13,9 @@ import com.example.noise.service.CcswitchService;
 import com.example.noise.service.ThresholdService;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -24,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 动态阈值判断 Service 实现 — P0-3 + P1-4 阈值规则 CRUD
@@ -31,6 +35,8 @@ import java.util.Set;
  */
 @Service
 public class ThresholdServiceImpl implements ThresholdService {
+
+  private static final Logger log = LoggerFactory.getLogger(ThresholdServiceImpl.class);
 
   /** 全局默认阈值，单位 dB(A) */
   private static final int GLOBAL_DEFAULT_THRESHOLD = 55;
@@ -364,6 +370,48 @@ public class ThresholdServiceImpl implements ThresholdService {
     result.put("lowerLimit", lowerLimit);
     result.put("windowRecordCount", recordCount);
     result.put("fallback", false);
+
+    // ccswitch-first: 尝试由 ccswitch Flask 服务计算阈值，优先使用其结果
+    try {
+      Map<String, Object> ccRequest = new HashMap<>();
+      ccRequest.put("location", location);
+      ccRequest.put("windowSize", windowSize);
+      ccRequest.put("kValue", kValue);
+      ccRequest.put("mean", mean);
+      ccRequest.put("stdDev", stdDev);
+      // 传递窗口内的分贝值列表供 ccswitch 做更精细计算
+      java.util.List<BigDecimal> decibelHistory = recentRecords.stream()
+          .map(NoiseRecord::getDecibel)
+          .collect(java.util.stream.Collectors.toList());
+      ccRequest.put("decibelHistory", decibelHistory);
+
+      Map<String, Object> ccResult = ccswitchService.computeThreshold(ccRequest);
+      if (ccResult != null) {
+        Object ccUpper = ccResult.get("upperLimit");
+        Object ccLower = ccResult.get("lowerLimit");
+        if (ccUpper != null) {
+          if (ccUpper instanceof BigDecimal) {
+            result.put("upperLimit", ccUpper);
+          } else if (ccUpper instanceof Number) {
+            result.put("upperLimit", new BigDecimal(ccUpper.toString()));
+          }
+        }
+        if (ccLower != null) {
+          if (ccLower instanceof BigDecimal) {
+            result.put("lowerLimit", ccLower);
+          } else if (ccLower instanceof Number) {
+            result.put("lowerLimit", new BigDecimal(ccLower.toString()));
+          }
+        }
+        result.put("ccswitchComputed", true);
+      }
+    } catch (BusinessException e) {
+      // ccswitch 不可用，回退到 Java 本地计算值
+      log.info("ccswitch 阈值计算不可用，回退 Java 本地计算（location={}）: {}", location, e.getMessage());
+      result.put("ccswitchComputed", false);
+      result.put("ccswitchFallbackReason", e.getMessage());
+    }
+
     return result;
   }
 
@@ -443,9 +491,15 @@ public class ThresholdServiceImpl implements ThresholdService {
     LocalTime now = LocalTime.now();
     boolean isSpecialPeriod = "午休".equals(currentSegment) || "夜间静校".equals(currentSegment);
 
+    // R-07-BE-2: 批量加载所有功能区配置，避免循环内 4×2=8 次重复 DB 查询
+    List<AreaConfig> allAreaConfigs = areaConfigMapper.selectList(
+        new LambdaQueryWrapper<AreaConfig>().in(AreaConfig::getAreaName, VALID_LOCATIONS));
+    Map<String, AreaConfig> areaConfigMap = allAreaConfigs.stream()
+        .collect(Collectors.toMap(AreaConfig::getAreaName, a -> a, (a, b) -> a));
+
     for (String location : VALID_LOCATIONS) {
       // 对每个功能区计算最近 3 个窗口的异常率
-      int windowSize = getEffectiveWindowSize(location);
+      int windowSize = getEffectiveWindowSize(location, areaConfigMap);
 
       // 取最近 3 个窗口的数据（每个窗口 windowSize 条，共 3*windowSize 条）
       int totalSample = windowSize * 3;
@@ -480,7 +534,7 @@ public class ThresholdServiceImpl implements ThresholdService {
         BigDecimal stdDev = BigDecimal.valueOf(Math.sqrt(variance.doubleValue()))
             .setScale(1, RoundingMode.HALF_UP);
 
-        BigDecimal kValue = getEffectiveKValue(location);
+        BigDecimal kValue = getEffectiveKValue(location, areaConfigMap);
         BigDecimal upperLimit = mean.add(kValue.multiply(stdDev)).setScale(1, RoundingMode.HALF_UP);
 
         // 计算窗口异常率：分贝值 > 统计上限的记录占比
@@ -528,20 +582,64 @@ public class ThresholdServiceImpl implements ThresholdService {
 
   @Override
   public Map<String, Object> getHybridPerformance() {
-    // 返回研究报告 §4 实验数据（固定值）
-    Map<String, Object> result = new HashMap<>();
-    result.put("accuracy", 92.6);
-    result.put("precision", 90.8);
-    result.put("recall", 91.7);
-    result.put("f1Score", 91.2);
-    result.put("falsePositiveRate", 4.0);
+    // 基于 noise_record 表实时统计模型判定分布
+    LambdaQueryWrapper<NoiseRecord> wrapper = new LambdaQueryWrapper<>();
+    wrapper.isNotNull(NoiseRecord::getIsAbnormal)
+           .isNotNull(NoiseRecord::getJudgedByModel);
+
+    // 按 judged_by_model 分组统计 count
+    List<NoiseRecord> judgedRecords = noiseRecordMapper.selectList(wrapper);
+    long totalJudged = judgedRecords.size();
+    long ruleBasedCount = judgedRecords.stream()
+        .filter(r -> "RULE_BASED".equals(r.getJudgedByModel())).count();
+    long adaptiveCount = judgedRecords.stream()
+        .filter(r -> "STAT_ADAPTIVE".equals(r.getJudgedByModel())).count();
+    long hybridCount = judgedRecords.stream()
+        .filter(r -> "HYBRID".equals(r.getJudgedByModel())).count();
 
     Map<String, Integer> modeDistribution = new HashMap<>();
-    modeDistribution.put("RULE_BASED", 30);
-    modeDistribution.put("ADAPTIVE", 67);
-    modeDistribution.put("HYBRID", 3);
-    result.put("modeDistribution", modeDistribution);
+    modeDistribution.put("RULE_BASED", (int) ruleBasedCount);
+    modeDistribution.put("ADAPTIVE", (int) adaptiveCount);
+    modeDistribution.put("HYBRID", (int) hybridCount);
 
+    // 计算实时性能指标（与人工标注 label 对比）
+    // noise_record 表 noise_type 字段中 "异常" 可作为人工标注对比源（P2 可选）
+    long tp = 0, fp = 0, tn = 0, fn = 0;
+    for (NoiseRecord r : judgedRecords) {
+      boolean predictedAbnormal = r.getIsAbnormal() != null && r.getIsAbnormal() == 1;
+      // noise_type 为 "异常" 表示人工标注异常（研究报告 §3.1.2 标注标准）
+      boolean actualAbnormal = "异常".equals(r.getNoiseType());
+      if (predictedAbnormal && actualAbnormal) tp++;
+      else if (predictedAbnormal && !actualAbnormal) fp++;
+      else if (!predictedAbnormal && !actualAbnormal) tn++;
+      else if (!predictedAbnormal && actualAbnormal) fn++;
+    }
+    long total = tp + fp + tn + fn;
+
+    Map<String, Object> result = new HashMap<>();
+    if (total > 0) {
+      double accuracy = (double) (tp + tn) / total * 100;
+      double precision = (tp + fp) > 0 ? (double) tp / (tp + fp) * 100 : 0;
+      double recall = (tp + fn) > 0 ? (double) tp / (tp + fn) * 100 : 0;
+      double f1 = (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) : 0;
+      double fpr = (fp + tn) > 0 ? (double) fp / (fp + tn) * 100 : 0;
+
+      result.put("accuracy", Math.round(accuracy * 10.0) / 10.0);
+      result.put("precision", Math.round(precision * 10.0) / 10.0);
+      result.put("recall", Math.round(recall * 10.0) / 10.0);
+      result.put("f1Score", Math.round(f1 * 10.0) / 10.0);
+      result.put("falsePositiveRate", Math.round(fpr * 10.0) / 10.0);
+    } else {
+      // 无标注数据时返回研究报告 §4 基准值
+      result.put("accuracy", 92.6);
+      result.put("precision", 90.8);
+      result.put("recall", 91.7);
+      result.put("f1Score", 91.2);
+      result.put("falsePositiveRate", 4.0);
+    }
+
+    result.put("modeDistribution", modeDistribution);
+    result.put("totalJudged", totalJudged);
     return result;
   }
 
@@ -588,24 +686,60 @@ public class ThresholdServiceImpl implements ThresholdService {
       }
     }
 
-    // 3. 比较分贝值与阈值
+    // 3. 比较分贝值与阈值（Java 本地计算）
     boolean isAbnormal = record.getDecibel().compareTo(BigDecimal.valueOf(thresholdValue)) > 0;
+
+    // ccswitch-first: 尝试由 ccswitch 批量计算对当前记录做判断，优先使用其结果
+    try {
+      Map<String, Object> batchRequest = new HashMap<>();
+      batchRequest.put("location", record.getLocation());
+      Map<String, Object> recordData = new HashMap<>();
+      recordData.put("decibel", record.getDecibel());
+      recordData.put("recordTime", record.getTimePoint() != null ? record.getTimePoint().toString() : null);
+      recordData.put("id", record.getId());
+      batchRequest.put("records", java.util.Collections.singletonList(recordData));
+
+      Map<String, Object> ccResult = ccswitchService.batchComputeThreshold(batchRequest);
+      if (ccResult != null && ccResult.get("results") != null) {
+        @SuppressWarnings("unchecked")
+        java.util.List<Map<String, Object>> results = (java.util.List<Map<String, Object>>) ccResult.get("results");
+        if (results != null && !results.isEmpty()) {
+          Map<String, Object> firstResult = results.get(0);
+          Object ccAbnormal = firstResult.get("isAbnormal");
+          Object ccThreshold = firstResult.get("thresholdValue");
+          if (ccAbnormal != null) {
+            // ccswitch 返回了判断结果，使用其判断覆盖 Java 本地结果
+            isAbnormal = ccAbnormal instanceof Boolean
+                ? (Boolean) ccAbnormal
+                : Integer.parseInt(ccAbnormal.toString()) == 1;
+            if (ccThreshold != null) {
+              thresholdValue = ccThreshold instanceof Integer
+                  ? (Integer) ccThreshold
+                  : Integer.parseInt(ccThreshold.toString());
+            }
+            if (firstResult.get("judgedByModel") != null) {
+              judgedByModel = (String) firstResult.get("judgedByModel");
+            }
+          }
+        }
+      }
+    } catch (BusinessException e) {
+      // ccswitch 不可用，继续使用 Java 本地计算结果
+      log.info("ccswitch 批量阈值计算不可用，回退 Java 本地判断（recordId={}）: {}", record.getId(), e.getMessage());
+    }
+
     record.setIsAbnormal(isAbnormal ? 1 : 0);
     record.setJudgedByModel(judgedByModel);
     noiseRecordMapper.updateById(record);
 
     // 4. 超阈值则创建告警
     if (isAbnormal) {
-      String alertType = "超阈值";
-      if (judgedByModel.equals("RULE_BASED")) {
-        alertType = "超阈值";
-      }
       alertLogService.createAlert(
           record.getId(),
           record.getLocation(),
           record.getDecibel(),
           thresholdValue,
-          alertType
+          "超阈值"
       );
     }
   }
@@ -627,12 +761,37 @@ public class ThresholdServiceImpl implements ThresholdService {
   }
 
   /**
+   * R-07-BE-2: 批量加载版本 — 从预加载的 Map 取值，避免重复 DB 查询
+   */
+  private int getEffectiveWindowSize(String location, Map<String, AreaConfig> areaConfigMap) {
+    AreaConfig area = areaConfigMap.get(location);
+    if (area != null && area.getWindowSize() != null) {
+      return area.getWindowSize();
+    }
+    // 默认值
+    return "图书馆".equals(location) || "宿舍".equals(location) ? 15 : 10;
+  }
+
+  /**
    * 获取功能区的有效 k 值（配置缺失时用默认值）
    */
   private BigDecimal getEffectiveKValue(String location) {
     LambdaQueryWrapper<AreaConfig> wrapper = new LambdaQueryWrapper<>();
     wrapper.eq(AreaConfig::getAreaName, location);
     AreaConfig area = areaConfigMapper.selectOne(wrapper);
+    if (area != null && area.getKValue() != null) {
+      return area.getKValue();
+    }
+    // 默认值
+    return "图书馆".equals(location) || "宿舍".equals(location)
+        ? new BigDecimal("2.00") : new BigDecimal("3.00");
+  }
+
+  /**
+   * R-07-BE-2: 批量加载版本 — 从预加载的 Map 取值，避免重复 DB 查询
+   */
+  private BigDecimal getEffectiveKValue(String location, Map<String, AreaConfig> areaConfigMap) {
+    AreaConfig area = areaConfigMap.get(location);
     if (area != null && area.getKValue() != null) {
       return area.getKValue();
     }

@@ -20,6 +20,10 @@ request.interceptors.request.use(
 
 request.interceptors.response.use(
   (response) => {
+    // Blob 响应（文件下载/导出）直接透传，不做 JSON 解析
+    if (response.config.responseType === 'blob') {
+      return response.data
+    }
     const res = response.data
     if (res.code === 200) {
       return res

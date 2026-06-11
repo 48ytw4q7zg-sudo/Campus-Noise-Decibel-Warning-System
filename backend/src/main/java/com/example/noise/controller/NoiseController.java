@@ -1,5 +1,6 @@
 package com.example.noise.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.noise.common.BusinessException;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 public class NoiseController {
@@ -231,6 +233,10 @@ public class NoiseController {
     List<Map<String, String>> errors = new ArrayList<>();
     int successCount = 0;
     int failCount = 0;
+    int skippedCount = 0;
+
+    // R-08-3: UUID 重命名上传文件，防止路径穿越/文件名注入
+    String safeFilename = UUID.randomUUID().toString() + ".csv";
 
     try (BufferedReader reader = new BufferedReader(
         new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
@@ -343,8 +349,8 @@ public class NoiseController {
             }
           }
 
-          // 构建设备 ID
-          String deviceId = "IMPORT_" + originalFilename.replaceAll("[^a-zA-Z0-9_\\-.]", "_") + "_" + rowNum;
+          // R-08-3: 构建设备 ID，使用 safeFilename 代替原始文件名
+          String deviceId = "IMPORT_" + safeFilename.replaceAll("[^a-zA-Z0-9_\\-.]", "_") + "_" + rowNum;
 
           // 插入记录
           NoiseRecord record = new NoiseRecord();
@@ -375,6 +381,18 @@ public class NoiseController {
             }
           }
 
+          // R-08-2: 去重检查 — 同一 (location, timePoint, decibel, deviceId) 已有记录则跳过
+          LambdaQueryWrapper<NoiseRecord> dedupWrapper = new LambdaQueryWrapper<>();
+          dedupWrapper.eq(NoiseRecord::getLocation, location)
+                      .eq(NoiseRecord::getTimePoint, timePoint)
+                      .eq(NoiseRecord::getDecibel, decibel)
+                      .eq(NoiseRecord::getDeviceId, deviceId);
+          Long existingCount = noiseRecordMapper.selectCount(dedupWrapper);
+          if (existingCount != null && existingCount > 0) {
+            skippedCount++;
+            continue;
+          }
+
           noiseRecordMapper.insert(record);
           successCount++;
 
@@ -389,6 +407,7 @@ public class NoiseController {
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put("successCount", successCount);
     resultMap.put("failCount", failCount);
+    resultMap.put("skippedCount", skippedCount);
     resultMap.put("errors", errors);
     return Result.success(resultMap, "导入完成");
   }
@@ -552,6 +571,10 @@ public class NoiseController {
   private String csvEscape(String value) {
     if (value == null) {
       return "";
+    }
+    // CSV 公式注入防护: 以 = @ + - 开头的值加单引号前缀
+    if (value.startsWith("=") || value.startsWith("@") || value.startsWith("+") || value.startsWith("-")) {
+      value = "'" + value;
     }
     if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
       return "\"" + value.replace("\"", "\"\"") + "\"";

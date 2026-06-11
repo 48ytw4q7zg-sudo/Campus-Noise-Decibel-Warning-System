@@ -52,8 +52,8 @@
         </el-form-item>
         <el-form-item label="异常状态">
           <el-select v-model="filterForm.isAbnormal" placeholder="全部" clearable style="width: 120px">
-            <el-option label="正常" :value="false" />
-            <el-option label="异常" :value="true" />
+            <el-option label="正常" :value="0" />
+            <el-option label="异常" :value="1" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -91,8 +91,8 @@
         <el-table-column prop="deviceId" label="设备ID" width="150" align="center" show-overflow-tooltip />
         <el-table-column prop="isAbnormal" label="异常状态" width="110" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.isAbnormal === true" type="danger" size="small">异常</el-tag>
-            <el-tag v-else-if="row.isAbnormal === false" type="success" size="small">正常</el-tag>
+            <el-tag v-if="row.isAbnormal === 1" type="danger" size="small">异常</el-tag>
+            <el-tag v-else-if="row.isAbnormal === 0" type="success" size="small">正常</el-tag>
             <el-tag v-else type="info" size="small">未判断</el-tag>
           </template>
         </el-table-column>
@@ -132,8 +132,8 @@
         <el-descriptions-item label="时间点">{{ formatTime(detailData.timePoint) }}</el-descriptions-item>
         <el-descriptions-item label="设备ID">{{ detailData.deviceId }}</el-descriptions-item>
         <el-descriptions-item label="异常状态">
-          <el-tag v-if="detailData.isAbnormal === true" type="danger" size="small">异常</el-tag>
-          <el-tag v-else-if="detailData.isAbnormal === false" type="success" size="small">正常</el-tag>
+          <el-tag v-if="detailData.isAbnormal === 1" type="danger" size="small">异常</el-tag>
+          <el-tag v-else-if="detailData.isAbnormal === 0" type="success" size="small">正常</el-tag>
           <el-tag v-else type="info" size="small">未判断</el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="判定模型">

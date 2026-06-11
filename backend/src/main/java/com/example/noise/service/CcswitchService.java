@@ -20,4 +20,16 @@ public interface CcswitchService {
 
   /** 通知 ccswitch 重载阈值规则（POST /api/threshold-rules/reload） */
   Map<String, Object> reloadThresholdRules();
+
+  /** POST /api/threshold/compute — 调用 ccswitch 实时计算阈值 */
+  Map<String, Object> computeThreshold(Map<String, Object> request);
+
+  /** POST /api/threshold/batch-compute — 批量阈值计算 */
+  Map<String, Object> batchComputeThreshold(Map<String, Object> request);
+
+  /** PUT /api/threshold/area-config — 更新区域自适应参数 */
+  Map<String, Object> updateAreaConfig(Map<String, Object> config);
+
+  /** GET /api/threshold/area-config — 查询区域自适应参数 */
+  Map<String, Object> getAreaConfig();
 }

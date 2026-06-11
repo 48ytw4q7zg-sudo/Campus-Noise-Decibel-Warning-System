@@ -89,6 +89,64 @@ public class CcswitchServiceImpl implements CcswitchService {
     }
   }
 
+  @Override
+  public Map<String, Object> computeThreshold(Map<String, Object> request) {
+    try {
+      RestTemplate rest = new RestTemplate();
+      String url = baseUrl + "/api/threshold/compute";
+      HttpHeaders headers = new HttpHeaders();
+      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+      ResponseEntity<Map> response = rest.exchange(url, HttpMethod.POST, entity, Map.class);
+      return extractBody(response);
+    } catch (RestClientException e) {
+      log.warn("ccswitch 阈值计算失败（POST /api/threshold/compute）: {}", e.getMessage());
+      throw new BusinessException(7001, "ccswitch 服务不可用");
+    }
+  }
+
+  @Override
+  public Map<String, Object> batchComputeThreshold(Map<String, Object> request) {
+    try {
+      RestTemplate rest = new RestTemplate();
+      String url = baseUrl + "/api/threshold/batch-compute";
+      HttpHeaders headers = new HttpHeaders();
+      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+      ResponseEntity<Map> response = rest.exchange(url, HttpMethod.POST, entity, Map.class);
+      return extractBody(response);
+    } catch (RestClientException e) {
+      log.warn("ccswitch 批量阈值计算失败（POST /api/threshold/batch-compute）: {}", e.getMessage());
+      throw new BusinessException(7001, "ccswitch 服务不可用");
+    }
+  }
+
+  @Override
+  public Map<String, Object> updateAreaConfig(Map<String, Object> config) {
+    try {
+      RestTemplate rest = new RestTemplate();
+      String url = baseUrl + "/api/threshold/area-config";
+      HttpHeaders headers = new HttpHeaders();
+      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(config, headers);
+      ResponseEntity<Map> response = rest.exchange(url, HttpMethod.PUT, entity, Map.class);
+      return extractBody(response);
+    } catch (RestClientException e) {
+      log.warn("ccswitch 更新区域自适应参数失败（PUT /api/threshold/area-config）: {}", e.getMessage());
+      throw new BusinessException(7001, "ccswitch 服务不可用");
+    }
+  }
+
+  @Override
+  public Map<String, Object> getAreaConfig() {
+    try {
+      RestTemplate rest = new RestTemplate();
+      String url = baseUrl + "/api/threshold/area-config";
+      ResponseEntity<Map> response = rest.getForEntity(url, Map.class);
+      return extractBody(response);
+    } catch (RestClientException e) {
+      log.warn("查询 ccswitch 区域自适应参数失败（GET /api/threshold/area-config）: {}", e.getMessage());
+      throw new BusinessException(7001, "ccswitch 服务不可用");
+    }
+  }
+
   /**
    * 从 ResponseEntity 提取 Map 体，null 时返回空 Map。
    */

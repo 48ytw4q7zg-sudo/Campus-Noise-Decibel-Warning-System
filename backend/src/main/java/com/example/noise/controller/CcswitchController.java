@@ -6,6 +6,8 @@ import com.example.noise.service.CcswitchService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -37,6 +39,38 @@ public class CcswitchController {
     checkAdmin(request);
     Map<String, Object> result = ccswitchService.reloadConfig();
     return Result.success(result, "配置重载成功");
+  }
+
+  /** 调用 ccswitch 实时计算阈值（仅管理员） */
+  @PostMapping("/api/ccswitch/threshold/compute")
+  public Result<?> computeThreshold(HttpServletRequest request, @RequestBody Map<String, Object> body) {
+    checkAdmin(request);
+    Map<String, Object> result = ccswitchService.computeThreshold(body);
+    return Result.success(result);
+  }
+
+  /** 调用 ccswitch 批量阈值计算（仅管理员） */
+  @PostMapping("/api/ccswitch/threshold/batch-compute")
+  public Result<?> batchComputeThreshold(HttpServletRequest request, @RequestBody Map<String, Object> body) {
+    checkAdmin(request);
+    Map<String, Object> result = ccswitchService.batchComputeThreshold(body);
+    return Result.success(result);
+  }
+
+  /** 更新 ccswitch 区域自适应参数（仅管理员） */
+  @PutMapping("/api/ccswitch/threshold/area-config")
+  public Result<?> updateAreaConfig(HttpServletRequest request, @RequestBody Map<String, Object> body) {
+    checkAdmin(request);
+    Map<String, Object> result = ccswitchService.updateAreaConfig(body);
+    return Result.success(result, "区域自适应参数已更新");
+  }
+
+  /** 查询 ccswitch 区域自适应参数（仅管理员） */
+  @GetMapping("/api/ccswitch/threshold/area-config")
+  public Result<?> getAreaConfig(HttpServletRequest request) {
+    checkAdmin(request);
+    Map<String, Object> result = ccswitchService.getAreaConfig();
+    return Result.success(result);
   }
 
   /** 管理员权限校验 */

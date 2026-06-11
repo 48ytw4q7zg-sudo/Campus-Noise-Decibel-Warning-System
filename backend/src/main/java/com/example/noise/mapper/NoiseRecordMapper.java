@@ -113,4 +113,24 @@ public interface NoiseRecordMapper extends BaseMapper<NoiseRecord> {
    */
   @Select("SELECT * FROM noise_record WHERE location = #{location} AND is_abnormal IN (0,1) ORDER BY time_point DESC LIMIT #{limit}")
   List<NoiseRecord> selectRecentForAdaptive(@Param("location") String location, @Param("limit") int limit);
+
+  /**
+   * 一次性查询每个功能区最新的一条噪声记录（用于仪表盘概览，避免 N+1）
+   */
+  @Select("SELECT nr.* FROM noise_record nr INNER JOIN ("
+      + "SELECT location, MAX(time_point) AS max_time FROM noise_record GROUP BY location"
+      + ") latest ON nr.location = latest.location AND nr.time_point = latest.max_time")
+  List<NoiseRecord> selectLatestPerArea();
+
+  /**
+   * 批量查询所有启用的阈值规则（避免循环 N+1）
+   */
+  @Select("SELECT * FROM threshold_rule WHERE status = 1")
+  List<com.example.noise.entity.ThresholdRule> selectThresholdRulesBatch();
+
+  /**
+   * 批量查询所有功能区配置（避免循环 N+1）
+   */
+  @Select("SELECT * FROM area_config")
+  List<com.example.noise.entity.AreaConfig> selectAreaConfigsBatch();
 }

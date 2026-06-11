@@ -23,7 +23,7 @@ export function login(data) {
  * @returns {Promise}
  */
 export function getProfile() {
-  return request.get('/auth/profile')
+  return request.get('/users/me')
 }
 
 /**
@@ -32,5 +32,5 @@ export function getProfile() {
  * @returns {Promise}
  */
 export function changePassword(data) {
-  return request.put('/auth/password', data)
+  return request.put('/users/me/password', data)
 }

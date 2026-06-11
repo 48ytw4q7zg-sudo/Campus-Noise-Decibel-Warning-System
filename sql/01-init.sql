@@ -5,10 +5,6 @@
 -- R-03 审核修复版（15 条 issue 已闭合并同步至本文件）
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS noise_db
-    DEFAULT CHARACTER SET utf8mb4
-    DEFAULT COLLATE utf8mb4_unicode_ci;
-
 USE noise_db;
 
 -- ============================================================

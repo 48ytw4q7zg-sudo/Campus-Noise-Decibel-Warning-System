@@ -5,6 +5,8 @@
 > 目标异常检测准确率 ≥92%，误报率 ≤5%
 >
 > 技术栈：SpringBoot 3.5.14 + Vue 3.5.34 + MySQL 8.4 + Python Flask ccswitch
+>
+> **Q-CR Omega v1.1 循环检测得分: 87.55/100**（3 轮循环，8 项修复，0 P0/P1 阻塞项）
 
 ## 项目概述
 
@@ -318,8 +320,8 @@ ccswitch 是一个独立的 Python Flask 微服务（Port 5000），从 `~/.clau
 
 ```bash
 cd backend
-mvn compile          # 编译（60+ 源文件）
-mvn test             # 测试（待补充）
+mvn compile          # 编译（74 源文件）
+mvn test             # 38 个单元测试全部通过 (ThresholdServiceImpl 24 + AlertLogServiceImpl 14)
 mvn package -DskipTests  # 打包为 JAR
 ```
 

@@ -17,17 +17,19 @@
               <el-input
                 v-model="loginForm.username"
                 placeholder="请输入用户名"
-                prefix-icon="User"
-              />
+              >
+                <template #prefix><el-icon><User /></el-icon></template>
+              </el-input>
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input
                 v-model="loginForm.password"
                 placeholder="请输入密码"
-                prefix-icon="Lock"
                 show-password
                 type="password"
-              />
+              >
+                <template #prefix><el-icon><Lock /></el-icon></template>
+              </el-input>
             </el-form-item>
             <el-form-item>
               <el-button
@@ -53,26 +55,29 @@
               <el-input
                 v-model="registerForm.username"
                 placeholder="2-20个字符"
-                prefix-icon="User"
-              />
+              >
+                <template #prefix><el-icon><User /></el-icon></template>
+              </el-input>
             </el-form-item>
             <el-form-item label="密码" prop="password">
               <el-input
                 v-model="registerForm.password"
                 placeholder="6-32个字符"
-                prefix-icon="Lock"
                 show-password
                 type="password"
-              />
+              >
+                <template #prefix><el-icon><Lock /></el-icon></template>
+              </el-input>
             </el-form-item>
             <el-form-item label="确认密码" prop="confirmPassword">
               <el-input
                 v-model="registerForm.confirmPassword"
                 placeholder="请再次输入密码"
-                prefix-icon="Lock"
                 show-password
                 type="password"
-              />
+              >
+                <template #prefix><el-icon><Lock /></el-icon></template>
+              </el-input>
             </el-form-item>
             <el-form-item label="角色" prop="role">
               <el-select
@@ -105,6 +110,7 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { login, register } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
 
@@ -159,7 +165,8 @@ const registerRules = {
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 32, message: '密码长度为 6-32 个字符', trigger: 'blur' }
+    { min: 8, max: 32, message: '密码长度为 8-32 个字符', trigger: 'blur' },
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码必须包含字母和数字', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
