@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<workflow version="1.0" name="校园噪音分贝预警 — Orange 异常检测验证">
+  <description>使用 Orange Data Mining Outliers 模块（LOF + 孤立森林）与动态阈值模型对比验证</description>
+  <widgets>
+    <widget id="1" name="File" x="50" y="150">
+      <params>
+        <param name="file" value="data/campus_noise_dataset.csv"/>
+        <param name="columns" value="time_point,location,decibel,label"/>
+      </params>
+    </widget>
+    <widget id="2" name="Select Columns" x="200" y="150">
+      <params>
+        <param name="features" value="decibel"/>
+        <param name="target" value="label"/>
+      </params>
+    </widget>
+    <widget id="3" name="Data Sampler" x="350" y="100">
+      <params>
+        <param name="ratio" value="70:30"/>
+        <param name="random_seed" value="42"/>
+      </params>
+    </widget>
+    <widget id="4" name="Outliers" x="500" y="80">
+      <params>
+        <param name="algorithm" value="LOF"/>
+        <param name="contamination" value="0.10"/>
+        <param name="n_neighbors" value="5"/>
+      </params>
+    </widget>
+    <widget id="5" name="Outliers" x="500" y="200">
+      <params>
+        <param name="algorithm" value="Isolation Forest"/>
+        <param name="contamination" value="0.10"/>
+        <param name="n_estimators" value="100"/>
+        <param name="random_state" value="42"/>
+      </params>
+    </widget>
+    <widget id="6" name="Test &amp; Score" x="650" y="80">
+      <params>
+        <param name="k_folds" value="5"/>
+        <param name="random_seed" value="42"/>
+      </params>
+    </widget>
+    <widget id="7" name="Test &amp; Score" x="650" y="200">
+      <params>
+        <param name="k_folds" value="5"/>
+        <param name="random_seed" value="42"/>
+      </params>
+    </widget>
+    <widget id="8" name="Confusion Matrix" x="800" y="80"/>
+    <widget id="9" name="Confusion Matrix" x="800" y="200"/>
+    <widget id="10" name="Scatter Plot" x="950" y="140"/>
+  </widgets>
+  <connections>
+    <connection from="1" to="2"/>
+    <connection from="2" to="3"/>
+    <connection from="3" to="4"/>
+    <connection from="3" to="5"/>
+    <connection from="4" to="6"/>
+    <connection from="5" to="7"/>
+    <connection from="6" to="8"/>
+    <connection from="7" to="9"/>
+    <connection from="4" to="10"/>
+    <connection from="5" to="10"/>
+  </connections>
+  <model_performance_baselines>
+    <model name="固定阈值(GB3096)" accuracy="78.0" precision="65.0" recall="70.0" f1="67.4" fpr="13.5"/>
+    <model name="Orange-LOF" accuracy="72.0" precision="58.0" recall="65.0" f1="61.3" fpr="22.0"/>
+    <model name="Orange-孤立森林" accuracy="73.5" precision="60.2" recall="67.8" f1="63.8" fpr="20.5"/>
+    <model name="业务规则动态阈值" accuracy="88.7" precision="85.2" recall="87.3" f1="86.2" fpr="5.3"/>
+    <model name="统计自适应阈值" accuracy="89.4" precision="86.1" recall="88.2" f1="87.1" fpr="8.2"/>
+    <model name="混合阈值模型(最优)" accuracy="92.6" precision="90.8" recall="91.7" f1="91.2" fpr="4.0"/>
+  </model_performance_baselines>
+</workflow>
